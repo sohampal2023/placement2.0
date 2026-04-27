@@ -30,7 +30,19 @@
             <input type="password" id="pass" placeholder="Password (51234Caps)" class="w-full p-2 mb-4 border rounded">
             <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">Login</button>
         </section>
-
+        <section id="enroll-section" class="max-w-md mx-auto bg-white p-6 mt-6 rounded-lg shadow-md border-t-4 border-blue-500">
+    <h3 class="text-xl mb-4 font-bold text-center">New Student Enrollment</h3>
+    <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-2 mb-2 border rounded text-sm">
+    <input type="email" id="reg-email" placeholder="Email Address" class="w-full p-2 mb-4 border rounded text-sm">
+    <button onclick="requestEnroll()" class="w-full bg-gray-800 text-white py-2 rounded hover:bg-black transition text-sm">Request Enrollment</button>
+    <p class="text-[10px] text-gray-500 mt-2 text-center">Admin will verify and provide your 4-digit Login ID.</p>
+</section>
+        <section id="login-section" class="max-w-md mx-auto bg-white p-8 mt-10 rounded-lg shadow-md">
+    <h2 class="text-2xl mb-6 font-bold text-center">Exam Portal Login</h2>
+    <input type="text" id="login-id" placeholder="ID (Admin or 4-Digit ID)" class="w-full p-2 mb-4 border rounded">
+    <input type="password" id="pass" placeholder="Password" class="w-full p-2 mb-4 border rounded">
+    <button onclick="portalLogin()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Login</button>
+</section>
         <section id="student-dash" class="hidden">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="bg-white p-6 rounded shadow">
@@ -154,6 +166,49 @@ window.uploadPDF = async () => {
     } catch (error) {
         console.error(error);
         status.innerText = "❌ Upload failed.";
+    }
+};
+        // 1. Send Enrollment Request to Admin
+window.requestEnroll = () => {
+    const name = document.getElementById('reg-name').value;
+    const email = document.getElementById('reg-email').value;
+    if(!name || !email) return alert("Fill all fields");
+
+    const reqRef = ref(db, 'enrollment_requests/' + Date.now());
+    set(reqRef, { name, email, status: "pending" })
+    .then(() => alert("Request sent! Wait for Admin to give your 4-digit ID."));
+};
+
+// 2. Dual-Mode Login (Admin Email or 4-Digit ID)
+window.portalLogin = async () => {
+    const idInput = document.getElementById('login-id').value;
+    const passInput = document.getElementById('pass').value;
+
+    // ADMIN LOGIN
+    if (idInput === "admin@admin.com") {
+        try {
+            await signInWithEmailAndPassword(auth, idInput, passInput);
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('enroll-section').classList.add('hidden');
+            document.getElementById('admin-panel').classList.remove('hidden'); // Show your admin panel
+            document.getElementById('user-info').innerText = "Admin Mode";
+        } catch (e) { alert("Admin Auth Failed"); }
+    } 
+    // STUDENT 4-DIGIT ID LOGIN
+    else if (idInput.length === 4) {
+        onValue(ref(db, 'verified_students/' + idInput), (snapshot) => {
+            const student = snapshot.val();
+            if (student && student.password === passInput) {
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('enroll-section').classList.add('hidden');
+                document.getElementById('student-dash').classList.remove('hidden');
+                document.getElementById('user-info').innerText = `ID: ${idInput} (${student.name})`;
+            } else {
+                alert("Invalid ID or Password");
+            }
+        }, { onlyOnce: true });
+    } else {
+        alert("Enter a valid Email or 4-Digit ID");
     }
 };
 
