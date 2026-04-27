@@ -76,6 +76,23 @@
                     <div class="palette-btn bg-red-500">3</div>
                     </div>
             </div>
+            <div id="admin-panel" class="hidden bg-white p-6 rounded shadow mt-4">
+    <h3 class="text-xl font-bold border-b mb-4">Admin Control Center</h3>
+    
+    <div class="mb-6">
+        <h4 class="font-bold">Pending verifications</h4>
+        <div id="pending-list" class="text-sm space-y-2">
+            <button onclick="verifyStudent('SAMPLE_ID')" class="bg-green-500 text-white px-2 py-1 rounded">Verify Soham</button>
+        </div>
+    </div>
+
+    <div>
+        <h4 class="font-bold">AI Question Bank Upload</h4>
+        <input type="text" id="q-text" placeholder="Question" class="w-full border p-1 mb-2">
+        <input type="text" id="q-ans" placeholder="Correct Answer Index (0-3)" class="w-full border p-1 mb-2">
+        <button onclick="uploadToBank('RRB_General_Science', {text: '...', answer: 0})" class="bg-blue-600 text-white px-4 py-1 rounded">Add to Bank</button>
+    </div>
+</div>
         </section>
 
     </main>
@@ -143,7 +160,54 @@
                 });
             }
         });
+        // --- ADMIN: ENROLLMENT & VERIFICATION ---
 
+// 1. Student Requests Enrollment
+window.requestEnrollment = (studentData) => {
+    const studentId = Date.now(); // Unique ID
+    set(ref(db, 'pending_students/' + studentId), {
+        name: studentData.name,
+        email: studentData.email,
+        status: "pending"
+    });
+};
+
+// 2. Admin Verifies Student
+window.verifyStudent = (studentId) => {
+    onValue(ref(db, 'pending_students/' + studentId), (snapshot) => {
+        const data = snapshot.val();
+        // Move to verified list
+        set(ref(db, 'verified_students/' + studentId), data);
+        // Remove from pending
+        set(ref(db, 'pending_students/' + studentId), null);
+        alert("Student Verified & Added to System!");
+    }, { onlyOnce: true });
+};
+
+// --- ADMIN: QUESTION BANK & AI GENERATOR ---
+
+// 3. Admin Uploads to Bank
+window.uploadToBank = (subject, questionObj) => {
+    const qId = "Q_" + Math.random().toString(36).substr(2, 9);
+    set(ref(db, `question_bank/${subject}/${qId}`), {
+        question: questionObj.text,
+        options: questionObj.options,
+        correct: questionObj.answer, // Answer key stored for AI
+        difficulty: questionObj.diff
+    });
+};
+
+// 4. AI Question Selection (Mock Exam Generation)
+window.generateAIExam = (subject, count = 10) => {
+    onValue(ref(db, `question_bank/${subject}`), (snapshot) => {
+        const allQuestions = Object.values(snapshot.val());
+        // AI Logic: Shuffles and picks unique random questions based on "count"
+        const shuffled = allQuestions.sort(() => 0.5 - Math.random());
+        const selectedQuestions = shuffled.slice(0, count);
+        
+        startExamUI(selectedQuestions); // Launches exam with these specific Qs
+    }, { onlyOnce: true });
+};
         // LIVE CAMERA START
         async function initProctor() {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
