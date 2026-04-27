@@ -194,6 +194,7 @@ Ans: A"
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getDatabase, ref, set, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+    // --- Firebase Configuration ---
     const firebaseConfig = {
         apiKey: "AIzaSyBKqBYNRY_80b_UOLg1ls9pIKdX-Y8b3CM",
         authDomain: "placement-96094.firebaseapp.com",
@@ -208,179 +209,228 @@ Ans: A"
     const auth = getAuth(app);
     const db = getDatabase(app);
 
-    // --- 1. ADMIN: INTERVIEW SETUP SCREEN ---
-    window.openInterviewSetup = () => {
-        const adminPanel = document.getElementById('admin-panel');
-        adminPanel.innerHTML = `
-            <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl border-4 border-indigo-50">
-                <div class="flex justify-between items-center mb-8 border-b pb-6">
-                    <h2 class="text-3xl font-black text-slate-800 uppercase italic">🎤 INTERVIEW DESIGNER</h2>
-                    <button onclick="location.reload()" class="bg-slate-100 text-slate-500 px-6 py-2 rounded-2xl font-bold">BACK</button>
-                </div>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                    <div class="bg-blue-50 p-8 rounded-[2rem] border-2 border-blue-100">
-                        <h4 class="font-black text-blue-700 mb-4 uppercase text-sm">Flow A: AI AUTO-VIVA</h4>
-                        <p class="text-[10px] text-slate-500 mb-4">Upload questions. AI will shuffle and ask them one by one.</p>
-                        <textarea id="ai-bulk-interview" placeholder="1. Tell me about yourself. 2. What is a Transistor? ..." class="w-full h-48 p-4 bg-white rounded-2xl border-none text-sm mb-4 outline-none focus:ring-2 ring-blue-400"></textarea>
-                        <button onclick="finalizeInterview('AI')" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-blue-700">ACTIVATE AI INTERVIEW</button>
-                    </div>
+    // --- Global State ---
+    window.currentStudent = null;
+    let paper = [];
+    let index = 0;
 
-                    <div class="bg-indigo-900 p-8 rounded-[2rem] text-white">
-                        <h4 class="font-black text-indigo-300 mb-4 uppercase text-sm">Flow B: REAL VIVA (LIVE)</h4>
-                        <p class="text-[10px] text-indigo-200 mb-6">Real Viva style. You watch the student and type questions manually. They hear the AI voice.</p>
-                        <div class="p-6 border-2 border-dashed border-indigo-700 rounded-2xl text-center mb-6">
-                            <span class="text-3xl">👤</span>
-                            <p class="text-xs mt-2 font-bold uppercase">Direct Ghost Control</p>
-                        </div>
-                        <button onclick="finalizeInterview('LIVE')" class="w-full bg-white text-indigo-900 py-4 rounded-2xl font-black shadow-lg hover:bg-indigo-50">START LIVE VIVA SESSION</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    };
+    // --- 1. AUTHENTICATION & ENROLLMENT (EXPOSED) ---
 
-    window.finalizeInterview = async (mode) => {
-        let bankId = "NONE";
-        
-        if (mode === 'AI') {
-            const raw = document.getElementById('ai-bulk-interview').value;
-            if(!raw) return alert("Please paste questions for AI Mode!");
-            const qns = raw.split(/\d+\./).filter(q => q.trim().length > 5);
-            bankId = `INT_${Date.now()}`;
-            for (let q of qns) { await push(ref(db, `interview_banks/${bankId}`), { content: q.trim() }); }
-        }
-
-        set(ref(db, 'active_test_config'), {
-            type: 'INTERVIEW',
-            mode: mode,
-            bank: bankId,
-            status: 'LIVE',
-            timestamp: Date.now()
-        }).then(() => {
-            alert(`Interview ${mode} is now LIVE.`);
-            location.reload();
-        });
-    };
-
-    // --- 2. ADMIN: GHOST LIVE COMMAND (Real Viva Style) ---
-    window.sendGhostMsg = () => {
-        const msg = document.getElementById('ghost-msg').value;
-        if (!msg) return;
-        set(ref(db, 'live_interviews/current_qn'), {
-            text: msg,
-            sender: 'AI', // Identity remains hidden
-            timestamp: Date.now()
-        });
-        document.getElementById('ghost-msg').value = "";
-    };
-
-    // --- 3. STUDENT: ADAPTIVE INTERVIEW ENGINE ---
-    window.startInterview = () => {
-        onValue(ref(db, 'active_test_config'), (snap) => {
-            const config = snap.val();
-            if (config.mode === 'AI') {
-                // AI Logic: Fetch bank and shuffle
-                onValue(ref(db, `interview_banks/${config.bank}`), (bSnap) => {
-                    const data = bSnap.val();
-                    const qns = Object.values(data).sort(() => 0.5 - Math.random());
-                    window.interviewPaper = qns;
-                    window.intIndex = 0;
-                    showPanel('exam-ui'); // Using exam-ui container for clean display
-                    askNextAIQuestion();
-                }, { onlyOnce: true });
-            } else {
-                // LIVE Logic: Just open UI and listen for Admin typing
-                showPanel('exam-ui');
-                document.getElementById('display-q-text').innerText = "Joining Live Viva Room... Please wait for the Interviewer.";
-                initProctor();
-                listenForLiveQuestions();
-            }
-        }, { onlyOnce: true });
-    };
-
-    function askNextAIQuestion() {
-        const q = window.interviewPaper[window.intIndex];
-        if (q) {
-            document.getElementById('display-q-text').innerText = q.content;
-            speakText(q.content);
-            window.intIndex++;
-        } else {
-            document.getElementById('display-q-text').innerText = "Interview Completed. Thank you.";
-        }
-    }
-
-    function listenForLiveQuestions() {
-        onValue(ref(db, 'live_interviews/current_qn'), (snap) => {
-            const q = snap.val();
-            if (q) {
-                document.getElementById('display-q-text').innerText = q.text;
-                speakText(q.text);
-            }
-        });
-    }
-
-    function speakText(text) {
-        window.speechSynthesis.cancel(); // Stop current speech
-        const speech = new SpeechSynthesisUtterance(text);
-        speech.rate = 0.9;
-        window.speechSynthesis.speak(speech);
-    }
-
-    // --- 4. SYSTEM UI HELPERS ---
     window.portalLogin = async () => {
         const id = document.getElementById('login-id').value;
         const pass = document.getElementById('login-pass').value;
+
         if (id === "admin@admin.com") {
             try {
                 await signInWithEmailAndPassword(auth, id, pass);
-                showPanel('admin-panel');
-                patchAdminHub();
-            } catch (e) { alert("Admin Error"); }
+                window.showPanel('admin-panel');
+                window.loadRequests();
+                window.loadStudentManager();
+            } catch (e) { alert("Admin Error: " + e.message); }
         } else {
-            // Student Login Logic
             onValue(ref(db, `verified_students/${id}`), (snap) => {
                 const s = snap.val();
                 if (s && s.password === pass) {
                     window.currentStudent = { id, ...s };
-                    showPanel('student-dash');
-                    // Add listener to show "Join" button if test is live
-                }
-            });
+                    window.showPanel('student-dash');
+                    document.getElementById('student-name-display').innerText = s.name;
+                    listenForAssignedTests(id);
+                } else { alert("Login Failed"); }
+            }, { onlyOnce: true });
         }
     };
 
-    function patchAdminHub() {
-        const panel = document.getElementById('admin-panel');
-        const hub = document.createElement('div');
-        hub.className = "grid grid-cols-1 md:grid-cols-2 gap-8 mb-12";
-        hub.innerHTML = `
-            <div onclick="window.openSetupScreen('CBT')" class="cursor-pointer bg-blue-900 p-12 rounded-[2.5rem] text-white shadow-2xl hover:scale-105 transition border-b-8 border-blue-400">
-                <h3 class="font-black text-2xl italic tracking-tighter">CBT BROADCAST</h3>
-                <p class="text-[10px] text-blue-300 font-bold uppercase">Bulk upload & Exam Config</p>
-            </div>
-            <div onclick="window.openInterviewSetup()" class="cursor-pointer bg-indigo-950 p-12 rounded-[2.5rem] text-white shadow-2xl hover:scale-105 transition border-b-8 border-indigo-600">
-                <h3 class="font-black text-2xl italic tracking-tighter">VIVA / INTERVIEW</h3>
-                <p class="text-[10px] text-indigo-300 font-bold uppercase">AI Auto vs Real Viva Style</p>
-            </div>
-        `;
-        panel.prepend(hub);
+    window.requestEnroll = () => {
+        const name = document.getElementById('reg-name').value;
+        const email = document.getElementById('reg-email').value;
+        if(!name || !email) return alert("Fill all details!");
+        push(ref(db, 'enrollment_requests/'), { name, email, time: Date.now() })
+            .then(() => alert("Request Submitted!"));
+    };
+
+    // --- 2. ADMIN SETUP SCREENS (EXPOSED) ---
+
+    window.openSetupScreen = (type) => {
+        const adminPanel = document.getElementById('admin-panel');
+        adminPanel.innerHTML = `
+            <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl border-4 border-blue-50">
+                <div class="flex justify-between items-center mb-8 border-b pb-6">
+                    <h2 class="text-3xl font-black text-slate-800 uppercase italic">⚙️ ${type} DESIGNER</h2>
+                    <button onclick="location.reload()" class="bg-slate-100 text-slate-500 px-6 py-2 rounded-2xl font-bold">CANCEL</button>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <div class="space-y-6">
+                        <input type="text" id="test-name" placeholder="Exam Name" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="number" id="test-time" placeholder="Mins" class="p-4 border rounded-2xl">
+                            <input type="number" id="test-marks" placeholder="Marks/Q" class="p-4 border rounded-2xl">
+                        </div>
+                        <h4 class="font-black text-blue-600 uppercase text-xs tracking-widest mt-6">Bulk Question Upload</h4>
+                        <textarea id="bulk-upload" placeholder="1. Question... A) Opt B) Opt Ans: A" class="w-full h-64 p-4 bg-slate-900 text-blue-400 font-mono text-xs rounded-2xl"></textarea>
+                        <button onclick="finalizeSetup('${type}')" class="w-full bg-blue-700 text-white py-5 rounded-2xl font-black shadow-xl">ACTIVATE TEST</button>
+                    </div>
+                    <div class="bg-slate-50 p-8 rounded-3xl border-2 border-dashed border-slate-200 text-xs">
+                        <h5 class="font-black mb-2">Format:</h5>
+                        <p>1. Question Text<br>A) Option B) Option<br>Ans: A</p>
+                    </div>
+                </div>
+            </div>`;
+    };
+
+    window.finalizeSetup = async (type) => {
+        const name = document.getElementById('test-name').value;
+        const time = document.getElementById('test-time').value;
+        const marks = document.getElementById('test-marks').value;
+        const rawText = document.getElementById('bulk-upload').value;
+
+        const qBlocks = rawText.split(/\d+\./).filter(b => b.length > 5);
+        const bankId = `BANK_${Date.now()}`;
+
+        for (let block of qBlocks) {
+            await push(ref(db, `question_bank/${bankId}`), { content: block.trim() });
+        }
+
+        set(ref(db, 'active_test_config'), {
+            type, name, bank: bankId, duration: parseInt(time), marksPerQ: parseInt(marks), status: 'LIVE', timestamp: Date.now()
+        }).then(() => location.reload());
+    };
+
+    // --- 3. GHOST LIVE & MONITORING ---
+
+    window.sendGhostMsg = () => {
+        const msg = document.getElementById('ghost-msg').value;
+        if (msg) {
+            set(ref(db, 'live_interviews/current_qn'), { text: msg, sender: 'AI', timestamp: Date.now() });
+            document.getElementById('ghost-msg').value = "";
+        }
+    };
+
+    window.submitMarks = () => {
+        const marks = document.getElementById('live-marks').value;
+        const sId = document.getElementById('monitored-id').innerText;
+        if (marks && sId !== "Waiting...") {
+            update(ref(db, `interview_results/${sId}`), { score: marks, timestamp: Date.now() });
+            alert("Score synced.");
+        }
+    };
+
+    // --- 4. STUDENT SIDE: AUTO-SHUFFLE & ADAPTIVE UI ---
+
+    function listenForAssignedTests(sId) {
+        onValue(ref(db, 'active_test_config'), (configSnap) => {
+            const config = configSnap.val();
+            if (!config) return;
+
+            onValue(ref(db, `verified_students/${sId}`), (sSnap) => {
+                const s = sSnap.val();
+                const dash = document.querySelector('#student-dash div.lg\\:col-span-2');
+                if (!dash) return;
+
+                let btn = "";
+                if (config.type === 'CBT' && s.cbt_enabled) {
+                    btn = `<button onclick="startExam('${config.bank}')" class="bg-blue-600 text-white px-12 py-5 rounded-2xl font-black shadow-2xl">START ${config.name}</button>`;
+                } else if (config.type === 'INTERVIEW' && s.int_enabled) {
+                    btn = `<button onclick="startInterview()" class="bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black shadow-2xl italic">JOIN INTERVIEW</button>`;
+                }
+
+                dash.innerHTML = `
+                    <div class="bg-white p-12 rounded-[3rem] border-4 border-blue-50 text-center">
+                        <h3 class="text-4xl font-black text-slate-800 mb-2">${config.type} LIVE</h3>
+                        <p class="text-slate-400 mb-10 font-bold italic">Identity Verified: ${s.name}</p>
+                        ${btn || '<div class="p-6 bg-red-50 text-red-500 rounded-2xl font-black">WAITING FOR AUTHORIZATION</div>'}
+                    </div>`;
+            });
+        });
     }
 
-    function showPanel(pid) {
+    window.startExam = (bankId) => {
+        onValue(ref(db, `question_bank/${bankId}`), (snap) => {
+            const data = snap.val();
+            const allQ = Object.values(data);
+            // TRUE RANDOM SHUFFLE
+            paper = allQ.map(q => ({ q, sort: Math.random() })).sort((a,b) => a.sort - b.sort).map(({q}) => q);
+            window.showPanel('exam-ui');
+            drawQuestion();
+        }, { onlyOnce: true });
+    };
+
+    // --- 5. SYSTEM HELPERS ---
+
+    window.showPanel = (pid) => {
         ['auth-container', 'student-dash', 'admin-panel', 'exam-ui'].forEach(id => {
             const el = document.getElementById(id);
             if(el) el.classList.add('hidden');
         });
         document.getElementById(pid).classList.remove('hidden');
+    };
+
+    window.loadStudentManager = () => {
+        onValue(ref(db, 'verified_students'), (snap) => {
+            const students = snap.val();
+            const container = document.getElementById('student-manager-list');
+            if(!container) return;
+            let html = `<table class="w-full text-left text-xs"><thead><tr class="text-slate-400 uppercase font-black"><th class="p-4">Name/ID</th><th class="p-4">CBT</th><th class="p-4">Interview</th><th class="p-4">Action</th></tr></thead><tbody>`;
+            for (let id in students) {
+                const s = students[id];
+                html += `<tr class="border-b">
+                    <td class="p-4 font-bold">${s.name}<br><span class="text-blue-500 font-mono">${id}</span></td>
+                    <td class="p-4"><button onclick="toggleStatus('${id}', 'cbt')" class="px-2 py-1 rounded ${s.cbt_enabled ? 'bg-green-100 text-green-700' : 'bg-slate-100'}">${s.cbt_enabled ? 'ON' : 'OFF'}</button></td>
+                    <td class="p-4"><button onclick="toggleStatus('${id}', 'int')" class="px-2 py-1 rounded ${s.int_enabled ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100'}">${s.int_enabled ? 'ON' : 'OFF'}</button></td>
+                    <td class="p-4"><button onclick="deleteStudent('${id}')" class="text-red-500 font-black">REMOVE</button></td>
+                </tr>`;
+            }
+            container.innerHTML = html + "</tbody></table>";
+        });
+    };
+
+    window.toggleStatus = (id, type) => {
+        const key = type === 'cbt' ? 'cbt_enabled' : 'int_enabled';
+        onValue(ref(db, `verified_students/${id}/${key}`), (snap) => {
+            update(ref(db, `verified_students/${id}`), { [key]: !snap.val() });
+        }, { onlyOnce: true });
+    };
+
+    window.deleteStudent = (id) => {
+        if(confirm("Delete student?")) remove(ref(db, `verified_students/${id}`));
+    };
+
+    function patchAdminUI() {
+        const adminPanel = document.getElementById('admin-panel');
+        if (!adminPanel) return;
+
+        const hub = document.createElement('div');
+        hub.className = "grid grid-cols-1 md:grid-cols-2 gap-8 mb-12";
+        hub.innerHTML = `
+            <div onclick="openSetupScreen('CBT')" class="cursor-pointer bg-blue-900 p-10 rounded-[2rem] text-white shadow-2xl border-b-8 border-blue-400">
+                <h3 class="font-black text-2xl italic">LAUNCH CBT</h3>
+                <p class="text-xs opacity-60">Bulk upload questions & timing</p>
+            </div>
+            <div onclick="openSetupScreen('INTERVIEW')" class="cursor-pointer bg-indigo-950 p-10 rounded-[2rem] text-white shadow-2xl border-b-8 border-indigo-600">
+                <h3 class="font-black text-2xl italic">LAUNCH INTERVIEW</h3>
+                <p class="text-xs opacity-60">Control AI Assistant or Ghost Mode</p>
+            </div>`;
+        adminPanel.prepend(hub);
+
+        // Targeted Monitor Injection
+        const leftBox = Array.from(adminPanel.querySelectorAll('.bg-slate-50.p-8')).find(el => el.innerText.includes("Enrollment"));
+        if (leftBox) {
+            const mon = document.createElement('div');
+            mon.className = "mt-8 bg-black p-8 rounded-[2rem] border-b-4 border-red-600 shadow-2xl";
+            mon.innerHTML = `
+                <p class="text-red-500 text-[10px] font-black mb-4 animate-pulse uppercase">● Ghost Command</p>
+                <textarea id="ghost-msg" placeholder="Type for AI to speak..." class="w-full h-24 bg-slate-900 text-blue-400 p-4 rounded-2xl mb-4 border-none"></textarea>
+                <button onclick="sendGhostMsg()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-black text-xs">SPEAK NOW</button>
+                <div class="grid grid-cols-2 gap-4 mt-4">
+                    <span id="monitored-id" class="text-white text-xs bg-slate-900 p-2 rounded">Waiting...</span>
+                    <input type="number" id="live-marks" placeholder="Score" class="bg-slate-900 text-white p-2 rounded text-center">
+                </div>
+                <button onclick="submitMarks()" class="w-full bg-green-600 mt-4 py-2 rounded-xl text-white font-black">SYNC SCORE</button>`;
+            leftBox.appendChild(mon);
+        }
     }
 
-    function initProctor() {
-        document.getElementById('camera-feed').classList.remove('hidden');
-        navigator.mediaDevices.getUserMedia({ video: true }).then(s => {
-            document.getElementById('camera-feed').srcObject = s;
-        });
-    }
+    // Initialize UI on load
+    patchAdminUI();
 
 </script>
 </body>
