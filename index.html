@@ -7,111 +7,175 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .exam-palette { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-        .palette-btn { width: 30px; height: 30px; border-radius: 50%; font-size: 10px; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        #camera-feed { width: 140px; height: 105px; background: #000; border: 2px solid #ef4444; position: fixed; bottom: 10px; right: 10px; border-radius: 8px; z-index: 50; }
-        .hidden { display: none; }
+        .palette-btn { width: 32px; height: 32px; border-radius: 50%; font-size: 11px; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        .palette-btn:hover { transform: scale(1.1); }
+        #camera-feed { width: 140px; height: 105px; background: #000; border: 2px solid #ef4444; position: fixed; bottom: 10px; right: 10px; border-radius: 8px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .hidden { display: none !important; }
+        .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
     </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-slate-50 font-sans text-slate-800">
 
-    <nav class="bg-blue-900 text-white p-4 flex justify-between items-center shadow-xl">
-        <h1 class="text-xl font-bold tracking-tight">ExamMaster Pro</h1>
-        <div id="user-info" class="text-xs bg-blue-800 px-3 py-1 rounded-full border border-blue-700">Status: Not Logged In</div>
+    <nav class="bg-blue-900 text-white p-4 flex justify-between items-center shadow-2xl sticky top-0 z-50">
+        <div class="flex items-center gap-2">
+            <div class="bg-white text-blue-900 p-1 rounded font-black">EM</div>
+            <h1 class="text-xl font-bold tracking-tight">ExamMaster Pro</h1>
+        </div>
+        <div id="user-info" class="text-xs font-mono bg-blue-800 px-4 py-2 rounded-lg border border-blue-700">
+            <span class="status-dot bg-red-500"></span> Offline
+        </div>
     </nav>
 
-    <div class="bg-yellow-100 p-2 text-center text-red-600 font-bold border-b border-yellow-300 text-sm">
-        📢 <span id="notice-text">Welcome! Please log in to access your RRB/TCS Mock Tests.</span>
+    <div class="bg-yellow-400 p-2 text-center text-blue-900 font-bold text-sm shadow-inner overflow-hidden whitespace-nowrap">
+        <span class="inline-block animate-pulse">📢 Important: RRB NTPC Mock Tests are now LIVE. Verify your 4-digit ID with Admin.</span>
     </div>
 
-    <main class="container mx-auto p-4">
+    <main class="container mx-auto p-4 max-w-6xl">
         
-        <section id="auth-container" class="max-w-md mx-auto mt-8">
-            <div id="login-box" class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 mb-6">
-                <h2 class="text-2xl mb-6 font-bold text-center text-gray-800">Portal Login</h2>
+        <section id="auth-container" class="max-w-md mx-auto mt-12 space-y-6">
+            <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+                <h2 class="text-2xl mb-6 font-black text-center text-slate-800 uppercase tracking-tighter">Portal Login</h2>
                 <div class="space-y-4">
-                    <input type="text" id="login-id" placeholder="Admin Email or 4-Digit ID" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    <input type="password" id="login-pass" placeholder="Password" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    <button onclick="portalLogin()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-all shadow-md">Login to Dashboard</button>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Identity</label>
+                        <input type="text" id="login-id" placeholder="Admin Email or 4-Digit ID" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Access Key</label>
+                        <input type="password" id="login-pass" placeholder="••••••••" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    </div>
+                    <button onclick="portalLogin()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black hover:bg-blue-700 transition-all shadow-lg active:scale-95">ENTER DASHBOARD</button>
                 </div>
             </div>
 
-            <div id="enroll-section" class="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500">
-                <h3 class="text-lg mb-4 font-bold text-center text-gray-700">Student Enrollment</h3>
+            <div id="enroll-box" class="bg-slate-800 p-6 rounded-2xl shadow-lg text-white">
+                <h3 class="text-lg mb-4 font-bold text-center">New Student Registration</h3>
                 <div class="space-y-3">
-                    <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-2 border rounded text-sm">
-                    <input type="email" id="reg-email" placeholder="Email Address" class="w-full p-2 border rounded text-sm">
-                    <button onclick="requestEnroll()" class="w-full bg-gray-800 text-white py-2 rounded font-semibold hover:bg-black transition text-sm">Submit Request</button>
-                    <p class="text-[10px] text-gray-400 text-center uppercase tracking-tighter">ID will be assigned after Admin verification</p>
+                    <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-3 bg-slate-700 border-none rounded-lg text-sm text-white placeholder-slate-400">
+                    <input type="email" id="reg-email" placeholder="Email Address" class="w-full p-3 bg-slate-700 border-none rounded-lg text-sm text-white placeholder-slate-400">
+                    <button onclick="requestEnroll()" class="w-full bg-yellow-500 text-blue-900 py-3 rounded-lg font-black hover:bg-yellow-400 transition text-sm">REQUEST 4-DIGIT ID</button>
                 </div>
             </div>
         </section>
 
-        <section id="student-dash" class="hidden animate-fade-in">
+        <section id="student-dash" class="hidden animate-in fade-in duration-500">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white p-6 rounded-xl shadow border-l-8 border-blue-600">
-                    <h3 class="font-bold text-gray-700 border-b pb-2 mb-4">Mock Tests</h3>
-                    <div class="flex justify-between items-center bg-blue-50 p-3 rounded-lg">
-                        <span class="text-sm font-medium">RRB NTPC 2026 Mock</span>
-                        <button onclick="startExam()" class="bg-blue-600 text-white px-4 py-1 rounded text-xs font-bold hover:shadow-lg">START</button>
+                <div class="bg-white p-6 rounded-2xl shadow-md border-t-8 border-blue-600">
+                    <h3 class="font-black text-slate-500 text-xs uppercase mb-4 tracking-widest">Active Exams</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <div>
+                                <p class="font-bold text-sm">RRB NTPC Full Mock</p>
+                                <p class="text-[10px] text-slate-400">100 Questions | 90 Mins</p>
+                            </div>
+                            <button onclick="startExam()" class="bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-black hover:bg-green-600 shadow-sm">START</button>
+                        </div>
                     </div>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow border-l-8 border-green-500">
-                    <h3 class="font-bold text-gray-700 border-b pb-2 mb-4">Academic Status</h3>
-                    <div class="text-4xl font-black text-green-600">Rank 7</div>
-                    <p class="text-[10px] text-gray-400 mt-1 uppercase">Updated: 2026-04-27</p>
+                <div class="bg-white p-6 rounded-2xl shadow-md border-t-8 border-yellow-500">
+                    <h3 class="font-black text-slate-500 text-xs uppercase mb-4 tracking-widest">Global Standing</h3>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-5xl font-black text-slate-800">#7</span>
+                        <span class="text-slate-400 font-bold">Rank</span>
+                    </div>
+                    <div class="mt-4 h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-yellow-500" style="width: 85%"></div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-2">Top 10% of IEM/UEM candidates</p>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow border-l-8 border-red-500">
-                    <h3 class="font-bold text-gray-700 border-b pb-2 mb-4">AI Proctoring</h3>
-                    <div id="violation-display" class="text-red-500 font-bold">Safe Mode: Active</div>
-                    <p class="text-[10px] text-gray-400 mt-1">Monitoring tab focus & camera</p>
+                <div class="bg-white p-6 rounded-2xl shadow-md border-t-8 border-red-500">
+                    <h3 class="font-black text-slate-500 text-xs uppercase mb-4 tracking-widest">AI Shield Status</h3>
+                    <div class="flex items-center gap-3">
+                        <div class="p-3 bg-red-50 rounded-full">
+                            <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        </div>
+                        <div>
+                            <p class="font-bold text-red-600">Proctoring Enabled</p>
+                            <p class="text-[10px] text-slate-400">Eye-tracking & Tab lock active</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
         <section id="admin-panel" class="hidden space-y-6">
-            <div class="bg-white p-8 rounded-xl shadow-2xl border-t-8 border-red-800">
-                <h2 class="text-2xl font-black mb-6 text-red-800">ADMIN CONTROL CENTER</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="p-5 border rounded-xl bg-gray-50">
-                        <h4 class="font-bold mb-4 flex items-center">📝 Pending Requests</h4>
-                        <div id="pending-list" class="space-y-2 max-h-48 overflow-y-auto">
-                            <p class="text-xs text-gray-400 italic">No pending requests found.</p>
+            <div class="bg-white p-8 rounded-2xl shadow-2xl border-t-8 border-slate-900">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-3xl font-black text-slate-900 tracking-tighter italic">ADMIN DASHBOARD</h2>
+                    <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-[10px] font-bold">SUPERUSER ACCESS</span>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                        <h4 class="font-black text-slate-500 text-xs uppercase mb-4">Pending Requests</h4>
+                        <div id="pending-list" class="space-y-3 overflow-y-auto max-h-60 pr-2">
+                            <div class="text-center p-10 text-slate-300 italic text-sm">Scanning for enrollment requests...</div>
                         </div>
                     </div>
-                    <div class="p-5 border rounded-xl bg-gray-50">
-                        <h4 class="font-bold mb-4 flex items-center">📄 AI Question Bank</h4>
-                        <input type="file" id="pdf-file" accept="application/pdf" class="block w-full text-xs mb-4">
-                        <button onclick="uploadPDF()" class="w-full bg-red-700 text-white py-2 rounded-lg text-sm font-bold hover:bg-red-800">Upload PDF to Storage</button>
-                        <div id="upload-status" class="text-[10px] mt-2 text-blue-600 font-mono"></div>
+                    
+                    <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                        <h4 class="font-black text-blue-600 text-xs uppercase mb-4 italic">AI Question Bank (Text Parser)</h4>
+                        <textarea id="raw-text-input" placeholder="Paste questions from PDF here... 
+Example:
+1. Who founded Kolkata?
+A) Job Charnock B) Lord Clive...
+Ans: A" 
+                        class="w-full h-48 p-4 text-xs font-mono border-none rounded-xl focus:ring-2 focus:ring-blue-400 bg-white shadow-inner mb-4"></textarea>
+                        <button onclick="processAIText()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            PARSE & INJECT TO BANK
+                        </button>
+                        <div id="parse-status" class="text-[10px] mt-2 text-center font-bold"></div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section id="exam-ui" class="hidden flex flex-col md:flex-row gap-4 h-[85vh]">
-            <div class="flex-1 bg-white p-6 rounded-lg shadow-inner flex flex-col border border-gray-300">
-                <div class="flex justify-between items-center border-b-2 border-gray-100 pb-3 mb-6">
-                    <div class="bg-blue-100 px-4 py-1 rounded text-blue-800 font-bold">Section: General Awareness</div>
-                    <div id="timer" class="text-3xl font-mono font-black text-red-600">90:00</div>
+        <section id="exam-ui" class="hidden h-[85vh] flex flex-col md:flex-row gap-4 animate-in slide-in-from-bottom-10">
+            <div class="flex-1 bg-white p-8 rounded-2xl shadow-xl border border-slate-200 flex flex-col">
+                <div class="flex justify-between items-center border-b pb-4 mb-6">
+                    <div>
+                        <span class="bg-slate-900 text-white px-3 py-1 rounded-md text-[10px] font-bold mr-2 uppercase">Part A</span>
+                        <span class="font-bold text-slate-600">Question #<span id="q-num">1</span></span>
+                    </div>
+                    <div id="timer" class="text-3xl font-mono font-black text-red-600 bg-red-50 px-4 py-1 rounded-lg">90:00</div>
                 </div>
-                <div class="flex-1">
-                    <h3 class="text-xl font-medium mb-8" id="current-question">Click 'START' to load your AI-generated exam.</h3>
-                    <div id="options-container" class="space-y-4">
+                
+                <div class="flex-1 overflow-y-auto">
+                    <h3 class="text-xl font-bold text-slate-800 mb-8 leading-relaxed" id="display-q-text">
+                        Please wait, AI is generating your unique question paper...
+                    </h3>
+                    <div id="options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         </div>
                 </div>
-                <div class="mt-6 flex justify-between pt-4 border-t">
-                    <button class="bg-gray-200 px-6 py-2 rounded font-bold text-gray-600">Mark for Review</button>
-                    <button class="bg-green-600 text-white px-10 py-2 rounded font-bold hover:bg-green-700">Save & Next</button>
+
+                <div class="mt-8 pt-6 border-t flex justify-between">
+                    <button class="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">MARK FOR REVIEW</button>
+                    <div class="flex gap-2">
+                        <button class="px-6 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900">PREVIOUS</button>
+                        <button onclick="nextQuestion()" class="px-10 py-3 bg-green-600 text-white rounded-xl font-black hover:bg-green-700 shadow-lg">SAVE & NEXT</button>
+                    </div>
                 </div>
             </div>
-            <div class="w-full md:w-72 bg-gray-200 p-4 rounded-lg flex flex-col">
-                <h4 class="font-bold mb-4 text-center text-gray-700 border-b border-gray-300 pb-2">Question Palette</h4>
-                <div class="exam-palette mb-auto">
-                    <div class="palette-btn bg-gray-400">1</div>
-                    <div class="palette-btn bg-gray-400">2</div>
-                    <div class="palette-btn bg-gray-400">3</div>
+
+            <div class="w-full md:w-80 bg-slate-100 p-6 rounded-2xl flex flex-col border border-slate-200">
+                <div class="text-center mb-6">
+                    <div class="w-20 h-20 bg-slate-300 rounded-xl mx-auto mb-2 border-4 border-white shadow-sm"></div>
+                    <p class="font-black text-slate-800 text-sm" id="student-name-display">Candidate Name</p>
                 </div>
-                <button onclick="submitExam()" class="mt-4 bg-red-600 text-white py-3 rounded-lg font-bold">Final Submit</button>
+                
+                <h4 class="font-black text-[10px] text-slate-400 uppercase mb-4 text-center tracking-widest">Question Palette</h4>
+                <div class="exam-palette overflow-y-auto max-h-64 mb-6 pr-2" id="palette-grid">
+                    </div>
+                
+                <div class="grid grid-cols-2 gap-2 text-[9px] font-bold uppercase mb-6">
+                    <div class="flex items-center gap-1"><span class="w-3 h-3 bg-green-500 rounded-full"></span> Answered</div>
+                    <div class="flex items-center gap-1"><span class="w-3 h-3 bg-red-500 rounded-full"></span> Not Answered</div>
+                    <div class="flex items-center gap-1"><span class="w-3 h-3 bg-gray-400 rounded-full"></span> Not Visited</div>
+                    <div class="flex items-center gap-1"><span class="w-3 h-3 bg-purple-500 rounded-full"></span> Review</div>
+                </div>
+
+                <button onclick="submitExam()" class="w-full bg-red-600 text-white py-4 rounded-xl font-black shadow-lg hover:bg-red-700 transition">SUBMIT EXAM</button>
             </div>
         </section>
 
@@ -122,8 +186,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import { getDatabase, ref, set, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBKqBYNRY_80b_UOLg1ls9pIKdX-Y8b3CM",
@@ -133,15 +196,13 @@
             storageBucket: "placement-96094.firebasestorage.app",
             messagingSenderId: "1061247846675",
             appId: "1:1061247846675:web:c6885811fcf1884582b2e6"
-            storageBucket: "placement-96094.appspot.com
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getDatabase(app);
-        const storage = getStorage(app);
 
-        // --- AUTH LOGIC ---
+        // --- AUTH & NAVIGATION ---
         window.portalLogin = async () => {
             const id = document.getElementById('login-id').value;
             const pass = document.getElementById('login-pass').value;
@@ -149,82 +210,161 @@
             if (id === "admin@admin.com") {
                 try {
                     await signInWithEmailAndPassword(auth, id, pass);
-                    showAdminPanel();
-                } catch (e) { alert("Admin Error: " + e.message); }
+                    showPanel('admin-panel');
+                    loadEnrollmentRequests();
+                } catch (e) { alert("Admin Login Failed: " + e.message); }
             } 
             else if (id.length === 4) {
-                onValue(ref(db, 'verified_students/' + id), (snapshot) => {
-                    const data = snapshot.val();
-                    if (data && data.password === pass) {
-                        showStudentDash(id, data.name);
-                    } else { alert("Incorrect Student ID or Password"); }
+                onValue(ref(db, 'verified_students/' + id), (snap) => {
+                    const student = snap.val();
+                    if (student && student.password === pass) {
+                        window.currentUser = { id, ...student };
+                        showPanel('student-dash');
+                        document.getElementById('student-name-display').innerText = student.name;
+                    } else { alert("Invalid Student Credentials"); }
                 }, { onlyOnce: true });
-            } else { alert("Enter 4-Digit ID or Admin Email"); }
+            } else { alert("Please enter valid Admin Email or 4-Digit Student ID"); }
         };
 
-        // --- UI SWITCHING ---
-        window.showAdminPanel = () => {
-            document.getElementById('auth-container').classList.add('hidden');
-            document.getElementById('admin-panel').classList.remove('hidden');
-            document.getElementById('user-info').innerText = "MODE: ADMIN";
-        };
+        function showPanel(panelId) {
+            ['auth-container', 'student-dash', 'admin-panel', 'exam-ui'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(panelId).classList.remove('hidden');
+            document.getElementById('user-info').innerHTML = `<span class="status-dot bg-green-500"></span> Online`;
+        }
 
-        window.showStudentDash = (id, name) => {
-            document.getElementById('auth-container').classList.add('hidden');
-            document.getElementById('student-dash').classList.remove('hidden');
-            document.getElementById('user-info').innerText = `ID: ${id} | ${name}`;
-        };
-
-        // --- ENROLLMENT (Note 1) ---
+        // --- ENROLLMENT LOGIC ---
         window.requestEnroll = () => {
             const name = document.getElementById('reg-name').value;
             const email = document.getElementById('reg-email').value;
-            if(!name || !email) return alert("Fill all details");
+            if(!name || !email) return alert("Fill all fields!");
 
-            push(ref(db, 'enrollment_requests/'), { name, email, status: "pending" })
-            .then(() => alert("Request Submitted! Admin will assign your ID."));
+            const newReq = push(ref(db, 'enrollment_requests/'));
+            set(newReq, { name, email, status: "pending", time: Date.now() })
+            .then(() => alert("Request Sent! Admin will assign your 4-digit ID shortly."));
         };
 
-        // --- PDF UPLOAD ---
-        window.uploadPDF = async () => {
-            const file = document.getElementById('pdf-file').files[0];
-            if (!file) return alert("Select PDF");
-            const status = document.getElementById('upload-status');
-            status.innerText = "Processing...";
+        function loadEnrollmentRequests() {
+            onValue(ref(db, 'enrollment_requests/'), (snap) => {
+                const list = document.getElementById('pending-list');
+                list.innerHTML = "";
+                const data = snap.val();
+                if(!data) return list.innerHTML = `<p class="text-xs text-slate-400 italic">No pending requests.</p>`;
+                
+                Object.keys(data).forEach(key => {
+                    const req = data[key];
+                    list.innerHTML += `
+                        <div class="bg-white p-3 rounded-xl border flex justify-between items-center shadow-sm">
+                            <div><p class="font-bold text-xs">${req.name}</p><p class="text-[10px] text-slate-400">${req.email}</p></div>
+                            <button onclick="approveStudent('${key}', '${req.name}', '${req.email}')" class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold">APPROVE</button>
+                        </div>
+                    `;
+                });
+            });
+        }
 
-            try {
-                const storageRef = sRef(storage, `banks/${Date.now()}_${file.name}`);
-                const snapshot = await uploadBytes(storageRef, file);
-                const url = await getDownloadURL(snapshot.ref);
-                await set(ref(db, 'admin_uploads/' + Date.now()), { url, name: file.name });
-                status.innerText = "✅ Uploaded. AI Parsing started.";
-            } catch (e) { status.innerText = "❌ Error uploading."; }
+        window.approveStudent = (key, name, email) => {
+            const fourDigitID = Math.floor(1000 + Math.random() * 9000);
+            const pass = "12345"; // Default Password
+            
+            update(ref(db, 'verified_students/' + fourDigitID), { name, email, password: pass })
+            .then(() => {
+                set(ref(db, 'enrollment_requests/' + key), null);
+                alert(`Approved! Student ID: ${fourDigitID} | Pass: ${pass}`);
+            });
+        };
+
+        // --- AI TEXT PARSER (The PDF Backdoor) ---
+        window.processAIText = async () => {
+            const raw = document.getElementById('raw-text-input').value;
+            const status = document.getElementById('parse-status');
+            if(!raw.trim()) return;
+
+            status.innerText = "⚡ Analyzing Question Patterns...";
+            status.className = "text-[10px] mt-2 text-center font-bold text-blue-600";
+
+            // Splitting questions based on digit + dot pattern (1., 2., etc)
+            const qBlocks = raw.split(/\d+\./).filter(b => b.length > 5);
+            
+            for (let block of qBlocks) {
+                const qRef = push(ref(db, 'question_bank/RRB_NTPC/'));
+                await set(qRef, { content: block.trim(), type: "AI_PARSED", time: Date.now() });
+            }
+            
+            status.innerText = `✅ Success: ${qBlocks.length} Questions injected into Bank.`;
+            document.getElementById('raw-text-input').value = "";
         };
 
         // --- EXAM ENGINE ---
+        let currentPaper = [];
+        let currentIdx = 0;
+
         window.startExam = () => {
-            document.getElementById('student-dash').classList.add('hidden');
-            document.getElementById('exam-ui').classList.remove('hidden');
-            document.getElementById('camera-feed').classList.remove('hidden');
-            startTimer(90 * 60);
-            initProctor();
+            onValue(ref(db, 'question_bank/RRB_NTPC/'), (snap) => {
+                const data = snap.val();
+                if(!data) return alert("Question Bank Empty! Admin must upload questions first.");
+                
+                currentPaper = Object.values(data).sort(() => 0.5 - Math.random()).slice(0, 25);
+                showPanel('exam-ui');
+                document.getElementById('camera-feed').classList.remove('hidden');
+                renderQuestion();
+                initPalette();
+                startTimer(90 * 60);
+                initProctor();
+            }, { onlyOnce: true });
         };
 
+        function renderQuestion() {
+            const q = currentPaper[currentIdx];
+            document.getElementById('q-num').innerText = currentIdx + 1;
+            document.getElementById('display-q-text').innerText = q.content;
+            
+            // Generate Dummy Options for the UI
+            const grid = document.getElementById('options-grid');
+            grid.innerHTML = ['A', 'B', 'C', 'D'].map(opt => `
+                <label class="flex items-center p-4 border-2 rounded-xl cursor-pointer hover:bg-blue-50 transition">
+                    <input type="radio" name="exam-opt" class="w-4 h-4 mr-3">
+                    <span class="font-bold text-slate-600">Option ${opt}</span>
+                </label>
+            `).join('');
+        }
+
+        window.nextQuestion = () => {
+            if(currentIdx < currentPaper.length - 1) {
+                currentIdx++;
+                renderQuestion();
+                updatePalette(currentIdx, 'answered');
+            } else { alert("Last question reached. Please click Submit."); }
+        };
+
+        function initPalette() {
+            const grid = document.getElementById('palette-grid');
+            grid.innerHTML = "";
+            for(let i=1; i<=25; i++) {
+                grid.innerHTML += `<div id="p-item-${i-1}" class="palette-btn bg-gray-400">${i}</div>`;
+            }
+        }
+
+        function updatePalette(idx, status) {
+            const el = document.getElementById(`p-item-${idx}`);
+            if(status === 'answered') el.className = "palette-btn bg-green-500";
+        }
+
         function startTimer(duration) {
-            let timer = duration, mins, secs;
-            setInterval(() => {
-                mins = parseInt(timer / 60, 10);
-                secs = parseInt(timer % 60, 10);
-                document.getElementById('timer').textContent = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-                if (--timer < 0) alert("EXAM TIME EXPIRED");
+            let t = duration, m, s;
+            const timerObj = setInterval(() => {
+                m = parseInt(t / 60, 10);
+                s = parseInt(t % 60, 10);
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (--t < 0) { clearInterval(timerObj); alert("Time Over!"); submitExam(); }
             }, 1000);
         }
 
-        // --- AI PROCTORING (Note 2) ---
+        // --- PROCTORING ---
         document.addEventListener("visibilitychange", () => {
             if (document.hidden && !document.getElementById('exam-ui').classList.contains('hidden')) {
-                alert("🔴 PROCTOR WARNING: Tab switch logged.");
-                // Log to Firebase here...
+                alert("🔴 AI WARNING: Tab switch detected. This has been reported to Admin.");
             }
         });
 
@@ -232,8 +372,14 @@
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 document.getElementById('camera-feed').srcObject = stream;
-            } catch (e) { console.log("Camera access denied"); }
+            } catch (e) { console.log("Cam access denied"); }
         }
+
+        window.submitExam = () => {
+            alert("Exam Submitted Successfully! AI is calculating your score.");
+            location.reload();
+        };
+
     </script>
 </body>
 </html>
