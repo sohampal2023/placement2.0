@@ -301,7 +301,20 @@ window.uploadToBank = (subject, questionObj) => {
         difficulty: questionObj.diff
     });
 };
+// Function to hide login and show Admin Panel
+window.showAdminPanel = () => {
+    document.getElementById('login-section').classList.add('hidden');
+    document.getElementById('enroll-section').classList.add('hidden');
+    document.getElementById('admin-panel').classList.remove('hidden');
+    document.getElementById('user-info').innerText = "Mode: Admin Control";
+};
 
+// Function to hide login and show Student Dashboard
+window.showStudentDash = () => {
+    document.getElementById('login-section').classList.add('hidden');
+    document.getElementById('enroll-section').classList.add('hidden');
+    document.getElementById('student-dash').classList.remove('hidden');
+};
 // 4. AI Question Selection (Mock Exam Generation)
 window.generateAIExam = (subject, count = 10) => {
     onValue(ref(db, `question_bank/${subject}`), (snapshot) => {
