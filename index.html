@@ -208,7 +208,119 @@ Ans: A"
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getDatabase(app);
+    // --- 1. UI PATCHER (Fixes HTML without manual editing) ---
+function patchUIForInterview() {
+    // Remove Institutional Rank section if it exists
+    const rankSection = document.getElementById('institutional-rank');
+    if (rankSection) rankSection.remove();
 
+    // Update Admin Panel with Scoring and Small Monitor
+    const adminPanel = document.getElementById('admin-panel');
+    if (adminPanel) {
+        const monitorContainer = adminPanel.querySelector('.lg\:col-span-1');
+        monitorContainer.innerHTML = `
+            <p class="text-red-500 text-[10px] font-bold mb-2 animate-pulse">● LIVE GHOST MONITOR</p>
+            <video id="admin-student-monitor" class="w-full h-32 bg-slate-900 rounded-lg mb-4 border border-slate-700" autoplay muted></video>
+            <div class="space-y-3">
+                <div class="bg-slate-800 p-2 rounded">
+                    <label class="text-[10px] text-slate-400 block uppercase">Monitoring ID:</label>
+                    <span id="monitored-id" class="text-white text-xs font-mono">Waiting...</span>
+                </div>
+                <input type="number" id="live-marks" placeholder="Marks (0-100)" 
+                       class="w-full p-2 bg-slate-800 text-white text-sm border-none rounded focus:ring-1 ring-blue-500">
+                <button onclick="submitMarks()" class="w-full bg-green-600 hover:bg-green-500 text-white py-2 rounded text-xs font-black">SAVE SCORE</button>
+                <div id="movement-log" class="text-[10px] text-yellow-500 font-mono mt-2 h-16 overflow-y-auto bg-black p-1">Logs: Ready...</div>
+            </div>
+        `;
+    }
+}
+
+// --- 2. GHOST & AI LOGIC ---
+
+// ADMIN: Send Manual Question (Student sees as "AI")
+window.sendGhostMsg = () => {
+    const msg = document.getElementById('ghost-msg').value;
+    if(!msg) return;
+    set(ref(db, 'live_interviews/current_qn'), {
+        text: msg,
+        sender: 'AI', // Identity Protection
+        type: 'LIVE',
+        time: Date.now()
+    });
+    document.getElementById('ghost-msg').value = "";
+};
+
+// ADMIN: Submit Marks
+window.submitMarks = () => {
+    const marks = document.getElementById('live-marks').value;
+    const studentId = document.getElementById('monitored-id').innerText;
+    if(marks && studentId !== "Waiting...") {
+        update(ref(db, `interview_results/${studentId}`), {
+            score: marks,
+            status: "Completed",
+            timestamp: Date.now()
+        });
+        alert(`Score ${marks} pushed to database.`);
+    }
+};
+
+// AI MODE: Random Question from Bank
+window.requestNextAIQn = () => {
+    onValue(ref(db, 'question_bank/interviews'), (snap) => {
+        const bank = Object.values(snap.val() || {});
+        if(bank.length === 0) return alert("Bank empty!");
+        const randomQ = bank[Math.floor(Math.random() * bank.length)];
+        set(ref(db, 'live_interviews/current_qn'), { text: randomQ.content, sender: 'AI', type: 'AUTO' });
+    }, { onlyOnce: true });
+};
+
+// STUDENT: Listen for Interview Events
+function listenForInterview(studentId) {
+    document.getElementById('monitored-id').innerText = studentId;
+    
+    // Listen for Questions
+    onValue(ref(db, 'live_interviews/current_qn'), (snap) => {
+        const qn = snap.val();
+        if(qn) {
+            document.getElementById('ai-question-box').innerText = qn.text;
+            const speech = new SpeechSynthesisUtterance(qn.text);
+            window.speechSynthesis.speak(speech);
+        }
+    });
+
+    // STEALTH MONITORING: Detect Tab Switching
+    document.addEventListener("visibilitychange", () => {
+        const action = document.hidden ? "LEFT TAB" : "RETURNED";
+        const logRef = ref(db, 'live_interviews/logs');
+        push(logRef, { studentId, action, time: new Date().toLocaleTimeString() });
+    });
+}
+
+// ADMIN: Listen for Stealth Logs
+function listenForLogs() {
+    onValue(ref(db, 'live_interviews/logs'), (snap) => {
+        const logs = snap.val();
+        const logBox = document.getElementById('movement-log');
+        if(logs && logBox) {
+            const lastLog = Object.values(logs).pop();
+            logBox.innerHTML += `<div>[${lastLog.time}] ${lastLog.studentId}: ${lastLog.action}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+    });
+}
+
+// --- 3. MODIFIED START INTERVIEW ---
+window.startInterview = (mode) => {
+    const sId = window.currentStudent?.id || "Unknown";
+    showPanel('interview-ui');
+    document.getElementById('camera-feed').classList.remove('hidden');
+    initCamera();
+    listenForInterview(sId);
+};
+
+// INITIALIZE ON LOAD
+patchUIForInterview();
+if (location.hash === "#admin") listenForLogs();
         // --- AUTH LOGIC (MOUNTED TO WINDOW) ---
         window.portalLogin = async () => {
             const id = document.getElementById('login-id').value;
@@ -383,6 +495,7 @@ Ans: A"
             alert("SUCCESS: EXAM DATA ENCRYPTED & SUBMITTED.");
             location.reload();
         };
+        
     </script>
 </body>
 </html>
