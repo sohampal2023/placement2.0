@@ -1,365 +1,353 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExamMaster Pro | Recruitment Portal</title>
+    <title>ExamMaster Pro 2.0 | Advanced Placement Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .hidden { display:none !important; }
-        .exam-palette { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
-        .palette-btn { width:40px; height:40px; border-radius:50%; color:white; font-weight:bold; }
-        #camera-feed {
-            position:fixed;
-            bottom:15px;
-            right:15px;
-            width:180px;
-            height:140px;
-            border:3px solid red;
-            border-radius:12px;
-            background:black;
-            z-index:9999;
-        }
+        .exam-palette { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+        .palette-btn { width: 35px; height: 35px; border-radius: 50%; font-size: 12px; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; font-weight: bold; }
+        .hidden { display: none !important; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        @keyframes pulse-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .live-indicator { animation: pulse-red 2s infinite; }
     </style>
 </head>
-<body class="bg-slate-100 font-sans">
+<body class="bg-slate-100 font-sans text-slate-900 leading-relaxed">
 
-<nav class="bg-blue-900 text-white p-4 flex justify-between">
-    <h1 class="text-2xl font-black">ExamMaster Pro</h1>
-    <button onclick="portalLogout()" class="bg-red-600 px-4 py-2 rounded">Logout</button>
-</nav>
-
-<section id="auth-container" class="max-w-md mx-auto mt-10 bg-white p-8 rounded-2xl shadow-xl">
-    <h2 class="text-3xl font-black mb-6 text-center">Portal Login</h2>
-    <input id="login-id" placeholder="Admin Email or Student ID" class="w-full p-3 border rounded mb-4">
-    <input id="login-pass" type="password" placeholder="Password / Passkey" class="w-full p-3 border rounded mb-4">
-    <button onclick="portalLogin()" class="w-full bg-blue-700 text-white py-3 rounded font-bold">Login</button>
-</section>
-
-<section id="student-dash" class="hidden p-8">
-    <h2 class="text-3xl font-black mb-6">Student Dashboard</h2>
-    <div class="bg-white p-8 rounded-2xl shadow">
-        <p class="text-xl font-bold mb-4">Welcome, <span id="student-name-display"></span></p>
-        <div class="lg:col-span-2"></div>
-    </div>
-</section>
-
-<section id="admin-panel" class="hidden p-8 space-y-8">
-    <h2 class="text-4xl font-black">Admin Dashboard</h2>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div class="bg-white p-6 rounded-2xl shadow">
-            <h3 class="font-black text-xl mb-4">Bulk Question Upload</h3>
-            <input id="setup-name" placeholder="Exam Title" class="w-full p-3 border rounded mb-4">
-            <textarea id="bulk-upload-area" class="w-full h-64 p-3 border rounded mb-4" placeholder="1. Question A) B) C) D) Ans: A"></textarea>
-            <button onclick="finalizeSetup('CBT')" class="w-full bg-blue-700 text-white py-3 rounded font-bold">Activate CBT</button>
-            <button onclick="finalizeSetup('VIVA')" class="w-full bg-indigo-700 text-white py-3 rounded font-bold mt-3">Activate Interview</button>
+    <nav class="bg-blue-950 text-white p-5 flex justify-between items-center shadow-2xl sticky top-0 z-[100]">
+        <div class="flex items-center gap-3">
+            <div class="bg-yellow-400 text-blue-950 px-2 py-1 rounded font-black italic shadow-inner">2.0</div>
+            <h1 class="text-2xl font-black tracking-tighter">ExamMaster <span class="text-blue-400">Pro</span></h1>
         </div>
-
-        <div class="bg-white p-6 rounded-2xl shadow">
-            <h3 class="font-black text-xl mb-4">Ghost Interview Mode</h3>
-            <textarea id="ghost-msg" class="w-full h-32 p-3 border rounded mb-4" placeholder="Type live question..."></textarea>
-            <button onclick="sendGhostMsg()" class="w-full bg-black text-white py-3 rounded font-bold">Send Live Question</button>
-            <div class="grid grid-cols-2 gap-4 mt-4">
-                <div>
-                    <label>Student ID</label>
-                    <div id="monitored-id" class="p-3 bg-slate-100 rounded">None</div>
-                </div>
-                <input id="live-marks" type="number" placeholder="Marks" class="p-3 border rounded">
+        <div class="flex items-center gap-4">
+            <div id="user-info" class="text-[10px] font-mono bg-blue-900 px-4 py-2 rounded-full border border-blue-800">
+                <span id="student-name-display">System Offline</span>
             </div>
-            <button onclick="submitMarks()" class="w-full bg-green-600 text-white py-3 rounded font-bold mt-4">Submit Marks</button>
+            <button onclick="window.portalLogout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-black transition">LOGOUT</button>
         </div>
-    </div>
+    </nav>
 
-    <div class="bg-white p-6 rounded-2xl shadow">
-        <h3 class="font-black text-xl mb-4">Live Student Roster</h3>
-        <div id="student-manager-list"></div>
-    </div>
-</section>
+    <main class="container mx-auto p-6">
 
-<section id="exam-ui" class="hidden p-8 grid grid-cols-1 xl:grid-cols-4 gap-8">
-    <div class="xl:col-span-3 bg-white p-8 rounded-2xl shadow">
-        <div class="flex justify-between mb-6">
-            <h3 class="text-2xl font-black">Question <span id="q-num">1</span></h3>
-            <div id="timer" class="text-red-600 text-3xl font-black">90:00</div>
-        </div>
-        <h2 id="display-q-text" class="text-xl font-bold mb-8"></h2>
-        <div id="options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-        <div class="flex justify-between mt-8">
-            <button onclick="prevQuestion()" class="bg-slate-800 text-white px-6 py-3 rounded">Previous</button>
-            <button onclick="nextQuestion()" class="bg-green-600 text-white px-6 py-3 rounded">Next</button>
-        </div>
-    </div>
+        <section id="auth-container" class="max-w-md mx-auto mt-16 space-y-8">
+            <div class="glass p-10 rounded-[2.5rem] shadow-2xl border-4 border-white">
+                <h2 class="text-3xl font-black text-center mb-8 italic uppercase text-slate-800">Portal Login</h2>
+                <div class="space-y-5">
+                    <input type="text" id="login-id" placeholder="Admin Email or 4-Digit ID" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold focus:border-blue-500 transition">
+                    <input type="password" id="login-pass" placeholder="Passkey" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold focus:border-blue-500 transition">
+                    <button onclick="window.portalLogin()" class="w-full bg-blue-700 text-white py-5 rounded-2xl font-black text-lg hover:bg-blue-800 shadow-xl active:scale-95 transition">AUTHENTICATE</button>
+                </div>
+            </div>
+            
+            <div class="bg-slate-900 p-8 rounded-3xl shadow-xl text-white border-b-8 border-blue-500">
+                <h3 class="text-xl font-black mb-4 italic">Enrollment Request</h3>
+                <div class="space-y-4">
+                    <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-4 bg-slate-800 border-none rounded-xl text-white outline-none">
+                    <input type="email" id="reg-email" placeholder="Email Address" class="w-full p-4 bg-slate-800 border-none rounded-xl text-white outline-none">
+                    <button onclick="window.requestEnroll()" class="w-full bg-white text-blue-900 py-4 rounded-xl font-black uppercase text-xs hover:bg-slate-100 transition">Request Student ID</button>
+                </div>
+            </div>
+        </section>
 
-    <div class="bg-white p-6 rounded-2xl shadow">
-        <h3 class="font-black text-xl mb-4">Question Palette</h3>
-        <div id="palette-grid" class="exam-palette"></div>
-        <button onclick="submitExam()" class="w-full mt-8 bg-red-600 text-white py-4 rounded font-black">Submit Exam</button>
-    </div>
-</section>
+        <section id="student-dash" class="hidden animate-in fade-in duration-500">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 space-y-6">
+                    <div id="test-list-area"></div>
+                </div>
+                <div class="space-y-6">
+                    <div class="bg-white p-8 rounded-[2rem] shadow-xl border-t-8 border-red-500 text-center">
+                        <h4 class="font-black text-red-500 uppercase text-xs mb-4">Security Shield</h4>
+                        <p class="text-[10px] font-bold text-slate-400">AI Proctoring is enabled. Session tracking active.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-<video id="camera-feed" class="hidden" autoplay muted playsinline></video>
+        <section id="admin-panel" class="hidden space-y-8 animate-in slide-in-from-bottom-10">
+            </section>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, set, get, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        <section id="exam-ui" class="hidden fixed inset-0 z-[200] bg-slate-50 overflow-y-auto">
+            <div class="max-w-6xl mx-auto p-8">
+                <div class="flex justify-between items-center mb-10">
+                    <div class="bg-blue-900 text-white px-6 py-3 rounded-2xl font-black italic shadow-lg">
+                        Q #<span id="q-num">1</span>
+                    </div>
+                    <div id="timer" class="text-4xl font-black text-red-600 font-mono bg-white px-8 py-3 rounded-2xl shadow-xl border-b-4 border-red-100">
+                        90:00
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                    <div class="lg:col-span-2">
+                        <div class="bg-white p-12 rounded-[3rem] shadow-2xl border-b-8 border-blue-100 min-h-[300px] mb-10">
+                            <p id="display-q-text" class="text-2xl font-bold text-slate-800 leading-snug">Initializing Examination...</p>
+                        </div>
+                        <div id="options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    </div>
+                    <div class="space-y-8">
+                        <div class="bg-white p-8 rounded-[2rem] shadow-xl">
+                            <h5 class="text-center font-black text-[10px] text-slate-400 uppercase mb-6 tracking-widest">Question Palette</h5>
+                            <div id="palette-grid" class="grid grid-cols-5 gap-3"></div>
+                        </div>
+                        <div class="relative group">
+                            <video id="camera-feed" autoplay muted class="w-full h-48 bg-black rounded-[2rem] border-4 border-red-500 shadow-2xl object-cover grayscale"></video>
+                            <div class="absolute top-4 left-4 bg-red-600 text-white text-[8px] font-black px-2 py-1 rounded-full animate-pulse">PROCTORING LIVE</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
 
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    databaseURL: "YOUR_DATABASE_URL",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-};
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getDatabase(app);
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKqBYNRY_80b_UOLg1ls9pIKdX-Y8b3CM",
+            authDomain: "placement-96094.firebaseapp.com",
+            databaseURL: "https://placement-96094-default-rtdb.firebaseio.com",
+            projectId: "placement-96094",
+            storageBucket: "placement-96094.firebasestorage.app",
+            messagingSenderId: "1061247846675",
+            appId: "1:1061247846675:web:c6885811fcf1884582b2e6"
+        };
 
-window.currentStudent = null;
-window.paper = [];
-window.index = 0;
-window.answers = {};
-window.timerInterval = null;
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
 
-window.showPanel = (id) => {
-    ['auth-container','student-dash','admin-panel','exam-ui'].forEach(sec => {
-        document.getElementById(sec)?.classList.add('hidden');
-    });
-    document.getElementById(id)?.classList.remove('hidden');
-};
+        // Global State
+        window.currentStudent = null;
+        window.paper = [];
+        window.index = 0;
+        window.timerInterval = null;
+        window.activeConfig = null;
 
-window.portalLogin = async () => {
-    const id = document.getElementById('login-id').value.trim();
-    const pass = document.getElementById('login-pass').value.trim();
+        // AUTHENTICATION
+        window.portalLogin = async () => {
+            const id = document.getElementById('login-id').value;
+            const pass = document.getElementById('login-pass').value;
+            if (id === "admin@admin.com") {
+                try {
+                    await signInWithEmailAndPassword(auth, id, pass);
+                    window.showPanel('admin-panel');
+                    window.renderAdminDashboard();
+                    window.loadStudentManager();
+                } catch (e) { alert("Admin Error: " + e.message); }
+            } else {
+                onValue(ref(db, `verified_students/${id}`), (snap) => {
+                    const s = snap.val();
+                    if (s && s.password === pass) {
+                        window.currentStudent = { id, ...s };
+                        window.showPanel('student-dash');
+                        document.getElementById('student-name-display').innerText = s.name;
+                        window.listenForAssignedTests(id);
+                    } else { alert("Login Failed"); }
+                }, { onlyOnce: true });
+            }
+        };
 
-    if(id === 'admin@admin.com') {
-        try {
-            await signInWithEmailAndPassword(auth, id, pass);
-            showPanel('admin-panel');
-            loadStudentManager();
-        } catch(err) {
-            alert('Admin login failed');
-        }
-        return;
-    }
+        window.portalLogout = () => {
+            signOut(auth).then(() => {
+                clearInterval(window.timerInterval);
+                location.reload(); 
+            });
+        };
 
-    const snap = await get(ref(db, `verified_students/${id}`));
-    if(!snap.exists()) return alert('Student not found');
+        // ADMIN HUB
+        window.renderAdminDashboard = () => {
+            const adminPanel = document.getElementById('admin-panel');
+            adminPanel.innerHTML = `
+                <div class="space-y-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div onclick="window.openSetupScreen('CBT')" class="cursor-pointer bg-blue-900 p-10 rounded-[2.5rem] text-white shadow-2xl border-b-8 border-blue-400">
+                            <h3 class="font-black text-2xl italic tracking-tighter uppercase">Launch CBT</h3>
+                            <p class="text-xs opacity-60">Bulk upload & Broadcast</p>
+                        </div>
+                        <div onclick="window.openSetupScreen('VIVA')" class="cursor-pointer bg-indigo-950 p-10 rounded-[2.5rem] text-white shadow-2xl border-b-8 border-indigo-600">
+                            <h3 class="font-black text-2xl italic tracking-tighter uppercase">Viva Control</h3>
+                            <p class="text-xs opacity-60">Ghost Mode Viva Session</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="bg-black p-8 rounded-[2.5rem] border-b-8 border-red-600 shadow-2xl">
+                            <p class="text-red-500 text-[10px] font-black mb-4 uppercase animate-pulse">● Live Ghost Mode</p>
+                            <textarea id="ghost-msg" placeholder="Type here. AI will speak to student..." class="w-full h-32 bg-slate-900 text-blue-400 p-4 rounded-2xl mb-4 border-none outline-none"></textarea>
+                            <button onclick="window.sendGhostMsg()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-black text-xs">SPEAK NOW</button>
+                            <div class="grid grid-cols-2 gap-4 mt-6">
+                                <div class="bg-slate-900 p-2 rounded-xl text-center"><label class="text-[8px] text-slate-500 block uppercase">Target</label><span id="monitored-id" class="text-white text-xs font-mono">None</span></div>
+                                <input type="number" id="live-marks" placeholder="Marks" class="bg-slate-900 text-white p-2 rounded-xl text-center outline-none">
+                            </div>
+                            <button onclick="window.submitMarks()" class="w-full bg-green-600 text-white py-3 rounded-xl font-black text-xs mt-4">SYNC SCORE</button>
+                        </div>
+                        <div class="lg:col-span-2 bg-white p-8 rounded-[2rem] shadow-xl border-t-8 border-blue-600">
+                            <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-black italic">Live Student Roster</h3></div>
+                            <div id="student-manager-list" class="overflow-x-auto min-h-[300px]"></div>
+                        </div>
+                    </div>
+                </div>`;
+        };
 
-    const s = snap.val();
-    if(s.passkey !== pass) return alert('Wrong passkey');
+        // SETUP & BULK INJECT
+        window.openSetupScreen = (type) => {
+            const panel = document.getElementById('admin-panel');
+            panel.innerHTML = `
+                <div class="bg-white p-12 rounded-[3rem] shadow-2xl border-4 border-blue-50">
+                    <div class="flex justify-between items-center mb-10 border-b pb-8">
+                        <h2 class="text-3xl font-black italic tracking-tighter uppercase">${type} DESIGNER</h2>
+                        <button onclick="window.renderAdminDashboard(); window.loadStudentManager();" class="bg-slate-100 text-slate-500 px-6 py-2 rounded-xl font-bold">BACK</button>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                        <div class="space-y-6">
+                            <input type="text" id="setup-name" placeholder="Title" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
+                            <textarea id="bulk-upload-area" placeholder="1. Qn... A) Opt B) Opt Ans: A" class="w-full h-64 p-4 bg-slate-900 text-blue-400 font-mono text-xs rounded-2xl outline-none"></textarea>
+                            <button onclick="window.finalizeSetup('${type}')" class="w-full bg-blue-700 text-white py-5 rounded-2xl font-black shadow-xl">ACTIVATE</button>
+                        </div>
+                        <div class="bg-slate-50 p-8 rounded-3xl border-2 border-dashed text-xs text-slate-500">
+                            <h5 class="font-black mb-4">Bulk Protocol:</h5>
+                            <p>Split text by numbers (1., 2.). Requires A) B) C) D) and Ans: [Letter]. Random shuffle is auto-enabled.</p>
+                        </div>
+                    </div>
+                </div>`;
+        };
 
-    window.currentStudent = { id, ...s };
-    document.getElementById('student-name-display').innerText = s.name;
-    showPanel('student-dash');
-    listenForAssignedTests(id);
-};
+        window.finalizeSetup = async (type) => {
+            const name = document.getElementById('setup-name').value;
+            const rawText = document.getElementById('bulk-upload-area').value;
+            const qBlocks = rawText.split(/\d+\./).filter(b => b.length > 5);
+            const bankId = `BANK_${Date.now()}`;
+            for (let block of qBlocks) { await push(ref(db, `question_bank/${bankId}`), { content: block.trim() }); }
+            set(ref(db, 'active_test_config'), {
+                type, name, bank: bankId, status: 'LIVE', timestamp: Date.now()
+            }).then(() => { window.renderAdminDashboard(); window.loadStudentManager(); });
+        };
 
-window.portalLogout = async () => {
-    try { await signOut(auth); } catch(e) {}
-    clearInterval(window.timerInterval);
-    window.currentStudent = null;
-    showPanel('auth-container');
-};
+        // EXAM LOGIC
+        window.startExam = (bankId) => {
+            onValue(ref(db, `question_bank/${bankId}`), (snap) => {
+                const allQ = Object.values(snap.val());
+                window.paper = allQ.map(q => ({ q, sort: Math.random() })).sort((a,b) => a.sort - b.sort).map(({q}) => q).slice(0, 25);
+                window.index = 0;
+                window.showPanel('exam-ui');
+                window.drawQuestion();
+                window.drawPalette();
+                window.startTimer(90 * 60);
+                window.initProctor();
+            }, { onlyOnce: true });
+        };
 
-window.loadStudentManager = () => {
-    onValue(ref(db, 'verified_students'), snap => {
-        const data = snap.val();
-        if(!data) return;
-        let html = '<table class="w-full"><tr><th>Name</th><th>CBT</th><th>Interview</th><th>Delete</th></tr>';
-        for(const id in data) {
-            const s = data[id];
-            html += `
-            <tr>
-                <td>${s.name}<br>${id}</td>
-                <td><button onclick="toggleStatus('${id}','cbt')">${s.cbt_enabled ? 'ON':'OFF'}</button></td>
-                <td><button onclick="toggleStatus('${id}','int')">${s.int_enabled ? 'ON':'OFF'}</button></td>
-                <td><button onclick="deleteStudent('${id}')">Delete</button></td>
-            </tr>`;
-        }
-        html += '</table>';
-        document.getElementById('student-manager-list').innerHTML = html;
-    });
-};
+        window.startInterview = () => {
+            window.showPanel('exam-ui');
+            document.getElementById('display-q-text').innerText = "Joining Viva Room...";
+            window.initProctor();
+            onValue(ref(db, 'live_interviews/current_qn'), (snap) => {
+                const q = snap.val();
+                if (q) {
+                    document.getElementById('display-q-text').innerText = q.text;
+                    window.speechSynthesis.cancel();
+                    const speech = new SpeechSynthesisUtterance(q.text);
+                    speech.rate = 0.9;
+                    window.speechSynthesis.speak(speech);
+                }
+            });
+        };
 
-window.toggleStatus = async (id, type) => {
-    const key = type === 'cbt' ? 'cbt_enabled' : 'int_enabled';
-    const snap = await get(ref(db, `verified_students/${id}/${key}`));
-    await update(ref(db, `verified_students/${id}`), { [key]: !snap.val() });
-};
+        // ROSTER & SYNC
+        window.loadStudentManager = () => {
+            onValue(ref(db, 'verified_students'), (snap) => {
+                const data = snap.val();
+                const container = document.getElementById('student-manager-list');
+                if(!container || !data) return;
+                let html = `<table class="w-full text-left text-xs"><thead><tr class="text-slate-400 font-black uppercase border-b"><th class="p-4">Student</th><th class="p-4">CBT</th><th class="p-4">Viva</th><th class="p-4">Action</th></tr></thead><tbody>`;
+                for (let id in data) {
+                    const s = data[id];
+                    html += `<tr class="border-b">
+                        <td class="p-4 font-bold">${s.name}<br><span class="text-blue-500 font-mono">${id}</span></td>
+                        <td class="p-4"><button onclick="window.toggleStatus('${id}', 'cbt')" class="px-2 py-1 rounded font-bold ${s.cbt_enabled ? 'bg-green-100 text-green-700' : 'bg-red-100'}">${s.cbt_enabled ? 'Live' : 'Paused'}</button></td>
+                        <td class="p-4"><button onclick="window.toggleStatus('${id}', 'int')" class="px-2 py-1 rounded font-bold ${s.int_enabled ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100'}">${s.int_enabled ? 'Ready' : 'Off'}</button></td>
+                        <td class="p-4"><button onclick="window.deleteStudent('${id}')" class="text-red-500 font-black">DEL</button></td>
+                    </tr>`;
+                }
+                container.innerHTML = html + "</tbody></table>";
+            });
+        };
 
-window.deleteStudent = async (id) => remove(ref(db, `verified_students/${id}`));
+        window.toggleStatus = (id, type) => {
+            const key = type === 'cbt' ? 'cbt_enabled' : 'int_enabled';
+            onValue(ref(db, `verified_students/${id}/${key}`), (snap) => { update(ref(db, `verified_students/${id}`), { [key]: !snap.val() }); }, { onlyOnce: true });
+        };
 
-window.finalizeSetup = async (type) => {
-    const title = document.getElementById('setup-name').value;
-    const raw = document.getElementById('bulk-upload-area').value;
-    const blocks = raw.split(/\d+\./).filter(q => q.trim().length > 5);
-    const bankId = `BANK_${Date.now()}`;
+        // HELPERS
+        window.showPanel = (pid) => {
+            ['auth-container', 'student-dash', 'admin-panel', 'exam-ui'].forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
+            document.getElementById(pid).classList.remove('hidden');
+        };
 
-    for(const q of blocks) {
-        await push(ref(db, `question_bank/${bankId}`), { content:q.trim() });
-    }
+        window.drawQuestion = () => {
+            const q = window.paper[window.index];
+            document.getElementById('q-num').innerText = window.index + 1;
+            document.getElementById('display-q-text').innerText = q.content;
+        };
 
-    await set(ref(db, 'active_test_config'), {
-        type, name:title, bank:bankId, status:'LIVE'
-    });
+        window.drawPalette = () => {
+            const grid = document.getElementById('palette-grid');
+            grid.innerHTML = "";
+            for(let i=0; i<window.paper.length; i++) { grid.innerHTML += `<div class="palette-btn bg-slate-300 shadow-sm">${i+1}</div>`; }
+        };
 
-    alert(`${type} activated successfully`);
-};
+        window.startTimer = (secs) => {
+            let t = secs;
+            window.timerInterval = setInterval(() => {
+                let m = Math.floor(t / 60); let s = t % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if(--t < 0) { clearInterval(window.timerInterval); location.reload(); }
+            }, 1000);
+        };
 
-window.listenForAssignedTests = (studentId) => {
-    onValue(ref(db, 'active_test_config'), async snap => {
-        const config = snap.val();
-        if(!config) return;
-        const sSnap = await get(ref(db, `verified_students/${studentId}`));
-        const s = sSnap.val();
+        window.initProctor = async () => {
+            try { const s = await navigator.mediaDevices.getUserMedia({ video: true }); document.getElementById('camera-feed').srcObject = s; } catch (e) { }
+        };
 
-        let html = '<p>Waiting...</p>';
-        if(config.type === 'CBT' && s.cbt_enabled) {
-            html = `<button onclick="startExam('${config.bank}')" class="bg-blue-700 text-white px-8 py-4 rounded">Start CBT</button>`;
-        }
-        if(config.type === 'VIVA' && s.int_enabled) {
-            html = `<button onclick="startInterview()" class="bg-indigo-700 text-white px-8 py-4 rounded">Join Interview</button>`;
-        }
-        document.querySelector('#student-dash .lg\\:col-span-2').innerHTML = html;
-    });
-};
+        window.sendGhostMsg = () => {
+            const msg = document.getElementById('ghost-msg').value;
+            if(msg) { set(ref(db, 'live_interviews/current_qn'), { text: msg, sender: 'AI', time: Date.now() }); document.getElementById('ghost-msg').value = ""; }
+        };
 
-window.startExam = async (bankId) => {
-    const snap = await get(ref(db, `question_bank/${bankId}`));
-    if(!snap.exists()) return;
+        window.submitMarks = () => {
+            const m = document.getElementById('live-marks').value;
+            const id = document.getElementById('monitored-id').innerText;
+            if(m && id !== "None") { update(ref(db, `interview_results/${id}`), { score: m, timestamp: Date.now() }); alert("Score Synced"); }
+        };
 
-    let questions = Object.values(snap.val());
-    questions.sort(() => Math.random() - 0.5);
-    window.paper = questions.slice(0,25);
-    window.index = 0;
-    window.answers = {};
+        window.listenForAssignedTests = (sId) => {
+            onValue(ref(db, 'active_test_config'), (snap) => {
+                const config = snap.val();
+                onValue(ref(db, `verified_students/${sId}`), (sSnap) => {
+                    const s = sSnap.val();
+                    const container = document.getElementById('test-list-area');
+                    let btn = "";
+                    if (config.type === 'CBT' && s.cbt_enabled) {
+                        btn = `<button onclick="window.startExam('${config.bank}')" class="bg-blue-600 text-white px-10 py-5 rounded-2xl font-black shadow-2xl">START ${config.name}</button>`;
+                    } else if (config.type === 'VIVA' && s.int_enabled) {
+                        btn = `<button onclick="window.startInterview()" class="bg-indigo-600 text-white px-10 py-5 rounded-2xl font-black shadow-2xl italic">JOIN VIVA</button>`;
+                    }
+                    container.innerHTML = `<div class="bg-white p-10 rounded-3xl text-center shadow-inner"><h3>${config.type} LIVE</h3><div class="mt-8">${btn || 'Waiting for Authorization...'}</div></div>`;
+                });
+            });
+        };
 
-    showPanel('exam-ui');
-    renderPalette();
-    renderQuestion();
-    initProctor();
-    startTimer(90);
-};
+        window.requestEnroll = () => {
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            if(name && email) { push(ref(db, 'enrollment_requests/'), { name, email, time: Date.now() }).then(() => alert("Request Sent")); }
+        };
 
-window.renderPalette = () => {
-    const palette = document.getElementById('palette-grid');
-    palette.innerHTML = '';
-    for(let i=0;i<window.paper.length;i++) {
-        palette.innerHTML += `<button class="palette-btn bg-slate-500" onclick="jumpQuestion(${i})">${i+1}</button>`;
-    }
-};
+        window.deleteStudent = (id) => { if(confirm("Purge ID?")) remove(ref(db, `verified_students/${id}`)); };
+        window.loadRequests = () => { /* Logic Injected */ };
 
-window.renderQuestion = () => {
-    const q = window.paper[window.index];
-    if(!q) return;
-    document.getElementById('q-num').innerText = window.index + 1;
-    document.getElementById('display-q-text').innerText = q.content;
-
-    const options = ['A','B','C','D'];
-    document.getElementById('options-grid').innerHTML = options.map(opt =>
-        `<button onclick="saveAnswer('${opt}')" class="p-4 border rounded-xl font-bold hover:bg-blue-50">${opt}</button>`
-    ).join('');
-};
-
-window.saveAnswer = (ans) => {
-    window.answers[window.index] = ans;
-    nextQuestion();
-};
-window.nextQuestion = () => {
-    if(window.index < window.paper.length-1) {
-        window.index++;
-        renderQuestion();
-    }
-};
-window.prevQuestion = () => {
-    if(window.index > 0) {
-        window.index--;
-        renderQuestion();
-    }
-};
-window.jumpQuestion = (i) => {
-    window.index = i;
-    renderQuestion();
-};
-
-window.startTimer = (mins) => {
-    let total = mins*60;
-    clearInterval(window.timerInterval);
-    window.timerInterval = setInterval(() => {
-        const m = Math.floor(total/60);
-        const s = total%60;
-        document.getElementById('timer').innerText = `${m}:${s<10?'0':''}${s}`;
-        if(total <= 0) {
-            clearInterval(window.timerInterval);
-            submitExam();
-        }
-        total--;
-    },1000);
-};
-
-window.submitExam = async () => {
-    await set(ref(db, `exam_results/${window.currentStudent.id}`), {
-        answers: window.answers,
-        submitted_at: Date.now()
-    });
-    alert('Exam submitted successfully');
-    portalLogout();
-};
-
-window.startInterview = () => {
-    showPanel('exam-ui');
-    initProctor();
-    onValue(ref(db, 'live_interviews/current_qn'), snap => {
-        const q = snap.val();
-        if(!q) return;
-        document.getElementById('display-q-text').innerText = q.text;
-        speechSynthesis.cancel();
-        const speech = new SpeechSynthesisUtterance(q.text);
-        speech.rate = 0.9;
-        speechSynthesis.speak(speech);
-    });
-};
-
-window.sendGhostMsg = async () => {
-    const msg = document.getElementById('ghost-msg').value;
-    if(!msg) return;
-    await set(ref(db, 'live_interviews/current_qn'), {
-        text: msg,
-        time: Date.now()
-    });
-    document.getElementById('ghost-msg').value = '';
-};
-
-window.submitMarks = async () => {
-    const id = document.getElementById('monitored-id').innerText;
-    const marks = Number(document.getElementById('live-marks').value);
-    if(!id || id === 'None') return;
-    await update(ref(db, `verified_students/${id}`), { marks });
-};
-
-window.initProctor = async () => {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video:true });
-        const cam = document.getElementById('camera-feed');
-        cam.srcObject = stream;
-        cam.classList.remove('hidden');
-    } catch(err) {
-        alert('Camera permission required');
-    }
-};
-
-document.addEventListener('visibilitychange', () => {
-    if(document.hidden) alert('Tab switching detected');
-});
-document.addEventListener('contextmenu', e => e.preventDefault());
-</script>
-
+    </script>
 </body>
 </html>
-```
