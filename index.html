@@ -132,23 +132,24 @@
             </div>
         </div>
     </div>
-    <div id="study-hub-view" class="hidden fixed inset-0 bg-white z-[200] overflow-y-auto w-full h-full">
-    <nav class="sticky top-0 bg-white border-b p-6 flex justify-between items-center z-[210] shadow-md">
+    <div id="study-hub-view" class="hidden fixed inset-0 bg-slate-50 z-[999999] overflow-y-auto w-full h-full">
+    <nav class="sticky top-0 bg-white border-b p-6 flex justify-between items-center z-[1000] shadow-md">
         <div class="flex items-center gap-4">
             <button onclick="closeStudyHub()" class="p-3 hover:bg-slate-100 rounded-2xl transition-all">
                 <i data-lucide="arrow-left"></i>
             </button>
-            <h2 id="hub-batch-title" class="text-2xl font-black text-slate-800 tracking-tighter uppercase">Classroom</h2>
+            <div>
+                <h2 id="hub-batch-title" class="text-2xl font-black text-slate-800 uppercase leading-none">Classroom</h2>
+                <p id="hub-path" class="text-[10px] text-blue-600 font-bold uppercase mt-1 tracking-widest"></p>
+            </div>
         </div>
         <div id="teacher-hub-tools" class="hidden">
-            <button id="teacher-add-sub-btn" onclick="saveSubject()" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg">
+            <button onclick="saveSubject()" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg">
                 + Add Subject
             </button>
         </div>
     </nav>
-
-    <div class="max-w-7xl mx-auto p-10" id="hub-curriculum-container">
-        </div>
+    <div class="max-w-7xl mx-auto p-10" id="hub-curriculum-container"></div>
 </div>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
@@ -596,49 +597,43 @@ window.addTopic = (subId) => {
 }
     window.openChapters = (subId, subTitle) => {
     const container = document.getElementById('hub-curriculum-container');
-    document.getElementById('hub-path').innerText = subTitle;
+    const path = document.getElementById('hub-path');
+    
+    // SAFE CHECK: Only set innerText if the element actually exists
+    if (path) {
+        path.innerText = "Subjects > " + subTitle;
+    } else {
+        console.warn("Element 'hub-path' not found. Skipping breadcrumb update.");
+    }
+
+    const isMaster = auth.currentUser.email === ADMIN_EMAIL;
 
     onValue(ref(db, `curriculum/${currentBatchId}/subjects/${subId}/topics`), (snapshot) => {
         const topics = snapshot.val();
-        const isMaster = auth.currentUser.email === ADMIN_EMAIL;
+        let html = `<div class="grid grid-cols-1 gap-4">`;
         
-        if (!topics) {
-            container.innerHTML = `
-                <div class="text-center py-20 text-slate-400">
-                    <p class="font-bold uppercase tracking-widest opacity-40 mb-4">No content found</p>
-                    ${isMaster ? `<button onclick="addTopic('${subId}')" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-xs">+ Upload First Note</button>` : ''}
-                </div>`;
-            return;
-        }
-
-        container.innerHTML = `
-            <div class="grid grid-cols-1 gap-4">
-                ${Object.values(topics).map((t) => `
-                    <div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 flex justify-between items-center group hover:border-blue-300 hover:shadow-md transition-all">
-                        <div class="flex items-center gap-5">
-                            <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner">
-                                <i data-lucide="file-text"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-lg font-black text-slate-800">${t.title}</h4>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Digital Notes • Click to Open</p>
-                            </div>
-                        </div>
-                        
-                        <div class="flex items-center gap-3">
-                            ${isMaster ? `
-                                <button onclick="editTopic('${subId}', '${t.id}', '${t.title}')" class="p-2 text-slate-300 hover:text-blue-600 transition-colors"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                                <button onclick="deleteTopic('${subId}', '${t.id}')" class="p-2 text-slate-300 hover:text-red-600 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                            ` : ''}
-                            <button onclick="viewNote('${t.pdf}')" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-xs shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
-                                VIEW NOTE
-                            </button>
-                        </div>
+        if (!topics) { 
+            html += `<p class="text-center py-10 opacity-30 font-bold uppercase tracking-widest">No notes uploaded yet</p>`; 
+        } else {
+            html += Object.values(topics).map(t => `
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 flex justify-between items-center hover:border-blue-300 transition-all shadow-sm">
+                    <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center"><i data-lucide="file-text"></i></div>
+                        <h4 class="text-lg font-black text-slate-800">${t.title}</h4>
                     </div>
-                `).join('')}
-            </div>
-            ${isMaster ? `<button onclick="addTopic('${subId}')" class="mt-8 w-full py-5 border-2 border-dashed border-blue-100 rounded-[2rem] text-blue-400 font-black hover:bg-blue-50 transition-all uppercase text-xs tracking-widest">+ Upload More Notes</button>` : ''}
-        `;
+                    <div class="flex items-center gap-3">
+                        ${isMaster ? `<button onclick="deleteTopic('${subId}', '${t.id}')" class="p-2 text-slate-300 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
+                        <button onclick="viewNote('${t.pdf}')" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-xs shadow-lg shadow-blue-100">VIEW NOTE</button>
+                    </div>
+                </div>`).join('');
+        }
+        html += `</div>`;
+        
+        if (isMaster) {
+            html += `<button onclick="addTopic('${subId}')" class="mt-8 w-full py-5 border-2 border-dashed border-blue-100 rounded-[2rem] text-blue-400 font-black hover:bg-blue-50 transition-all uppercase text-xs tracking-widest">+ Upload More Notes</button>`;
+        }
+        
+        container.innerHTML = html;
         lucide.createIcons();
     });
 };
