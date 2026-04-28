@@ -126,7 +126,8 @@
                 try {
                     await signInWithEmailAndPassword(auth, id, pass);
                     window.showPanel('admin-panel');
-                    window.openInterviewTab();
+                    // This triggers the view that contains your new button
+                    window.openInterviewTab(); 
                 } catch (e) { alert("Admin Error: " + e.message); }
             } else {
                 onValue(ref(db, `verified_students/${id}`), (snap) => {
@@ -142,24 +143,31 @@
         };
 
         // ADMIN: INTERVIEW TAB (COMBINED)
+       // ADMIN: INTERVIEW TAB (MATCHING YOUR REQUEST)
         window.openInterviewTab = () => {
             const container = document.getElementById('admin-main-view');
             container.innerHTML = `
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in">
-                    <div class="bg-black p-8 rounded-[2rem] border-b-8 border-red-600 shadow-2xl">
-                        <p class="text-red-500 text-[10px] font-black mb-4 uppercase animate-pulse">● LIVE GHOST VIVA</p>
-                        <textarea id="ghost-msg" placeholder="Speak through AI..." class="w-full h-32 bg-slate-900 text-blue-400 p-4 rounded-2xl mb-4 border-none outline-none focus:ring-2 ring-blue-500"></textarea>
-                        <button onclick="window.sendGhostMsg()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-black text-xs">SPEAK NOW</button>
-                        
-                        <div class="mt-8 bg-slate-900 p-4 rounded-2xl border border-slate-800">
-                            <h4 class="text-[8px] text-slate-500 uppercase font-black mb-4">Candidate Answer Log</h4>
-                            <div id="admin-transcript-view" class="h-40 overflow-y-auto text-white text-[10px] font-mono italic">Waiting for student response...</div>
-                        </div>
-                    </div>
+                <div class="space-y-6 animate-in fade-in">
+                    <button onclick="window.openInterviewManager()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-6 rounded-[2rem] font-black text-xl shadow-2xl transition-all transform hover:scale-[1.01] flex items-center justify-center gap-4">
+                        <span>📅</span> OPEN ADVANCED INTERVIEW SCHEDULER & AI LOGIC
+                    </button>
 
-                    <div class="lg:col-span-2 bg-white p-10 rounded-[2rem] shadow-xl border-t-8 border-blue-600">
-                        <h3 class="text-xl font-black mb-6 italic uppercase">Live Candidate Roster</h3>
-                        <div id="student-roster" class="min-h-[400px]"></div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="bg-black p-8 rounded-[2rem] border-b-8 border-red-600 shadow-2xl">
+                            <p class="text-red-500 text-[10px] font-black mb-4 uppercase animate-pulse">● LIVE GHOST VIVA</p>
+                            <textarea id="ghost-msg" placeholder="Speak through AI..." class="w-full h-32 bg-slate-900 text-blue-400 p-4 rounded-2xl mb-4 border-none outline-none focus:ring-2 ring-blue-500"></textarea>
+                            <button onclick="window.sendGhostMsg()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-black text-xs">SPEAK NOW</button>
+                            
+                            <div class="mt-8 bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                                <h4 class="text-[8px] text-slate-500 uppercase font-black mb-4">Candidate Answer Log</h4>
+                                <div id="admin-transcript-view" class="h-40 overflow-y-auto text-white text-[10px] font-mono italic">Waiting...</div>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-2 bg-white p-10 rounded-[2rem] shadow-xl border-t-8 border-blue-600">
+                            <h3 class="text-xl font-black mb-6 italic uppercase">Live Candidate Roster</h3>
+                            <div id="student-roster" class="min-h-[400px]"></div>
+                        </div>
                     </div>
                 </div>
             `;
