@@ -259,57 +259,43 @@
     }
 
     function loadBatches() {
-        onValue(ref(db, 'premium_batches'), (snapshot) => {
-            const container = document.getElementById('batches-container');
-            const data = snapshot.val();
-            if (!data) {
-                container.innerHTML = `<p class="col-span-full text-center py-20">No batches yet.</p>`;
-                return;
-            }
-            const isTeacher = auth.currentUser && auth.currentUser.email === ADMIN_EMAIL;
-            
-            container.innerHTML = Object.keys(data).map(key => {
-                const b = data[key];
-                return `
-                <div class="glass-card p-8 rounded-[3rem] flex flex-col h-full bg-white">
-                    <div class="bg-blue-50 text-blue-600 w-16 h-16 rounded-3xl flex items-center justify-center mb-8"><i data-lucide="layers"></i></div>
-                    <h3 class="text-2xl font-black text-slate-900 mb-3">${b.name}</h3>
-                    <p class="text-slate-500 font-medium mb-10 leading-relaxed flex-grow">${b.description}</p>
-                    <div class="flex justify-between items-center pt-6 border-t">
-                        <div>
-                            <span class="text-[10px] font-black text-slate-400 block tracking-widest">Fee</span>
-                            <span class="text-3xl font-black text-blue-600">₹${b.price}</span>
-                        </div>
-                        ${isTeacher ? 
-                            `<button onclick="window.location.href='study-hub.html?batch=${b.id}'" class="bg-blue-600 text-white px-6 py-4 rounded-2xl font-black">Start Teaching</button>` 
-                            : <div id="topicModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-[60] p-4">
-    <div class="bg-white w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-2xl font-black">Add Study Material</h3>
-            <button onclick="toggleTopicModal()" class="text-slate-400"><i data-lucide="x"></i></button>
-        </div>
+    const container = document.getElementById('batches-container');
+    onValue(ref(db, 'premium_batches'), (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+            container.innerHTML = `<p class="col-span-full text-center py-20 text-slate-400">No batches live yet.</p>`;
+            return;
+        }
+
+        const isTeacher = auth.currentUser && auth.currentUser.email === ADMIN_EMAIL;
         
-        <div class="space-y-4">
-            <input id="topic-title" type="text" placeholder="Topic Title (e.g. KVL & KCL)" class="w-full p-4 rounded-2xl bg-slate-100 outline-none focus:ring-2 focus:ring-blue-600">
-            <input id="topic-video" type="text" placeholder="YouTube Video ID (e.g. dQw4w9WgXcQ)" class="w-full p-4 rounded-2xl bg-slate-100 outline-none focus:ring-2 focus:ring-blue-600">
-            <input id="topic-pdf" type="text" placeholder="Google Drive PDF Link" class="w-full p-4 rounded-2xl bg-slate-100 outline-none focus:ring-2 focus:ring-blue-600">
-            
-            <div class="flex gap-4 pt-4">
-                <button onclick="saveNewTopic()" class="flex-grow bg-blue-600 text-white rounded-2xl font-black py-4 shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all">
-                    Upload to Batch
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-                            `<button onclick="requestEnrollment('${b.id}', '${b.name}')" class="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black">Join Batch</button>`
-                        }
+        container.innerHTML = Object.keys(data).map(key => {
+            const b = data[key];
+            // Fix: We only use a string for the button, no Modals here!
+            const actionButton = isTeacher ? 
+                `<button onclick="window.location.href='study-hub.html?batch=${b.id}'" class="bg-blue-600 text-white px-6 py-4 rounded-2xl font-black shadow-lg hover:bg-blue-700 transition-all">Start Teaching</button>` 
+                : 
+                `<button onclick="requestEnrollment('${b.id}', '${b.name}')" class="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black shadow-xl hover:bg-blue-700 transition-all">Join Batch</button>`;
+
+            return `
+            <div class="glass-card p-8 rounded-[3rem] flex flex-col h-full bg-white">
+                <div class="bg-blue-50 text-blue-600 w-16 h-16 rounded-3xl flex items-center justify-center mb-8">
+                    <i data-lucide="layers"></i>
+                </div>
+                <h3 class="text-2xl font-black text-slate-900 mb-3">${b.name}</h3>
+                <p class="text-slate-500 font-medium mb-10 leading-relaxed flex-grow">${b.description}</p>
+                <div class="flex justify-between items-center pt-6 border-t border-slate-50">
+                    <div>
+                        <span class="text-[10px] font-black text-slate-400 block tracking-widest uppercase">Fee Plan</span>
+                        <span class="text-3xl font-black text-blue-600">₹${b.price}</span>
                     </div>
-                </div>`;
-            }).join('');
-            lucide.createIcons();
-        });
-    }
+                    ${actionButton}
+                </div>
+            </div>`;
+        }).join('');
+        lucide.createIcons();
+    });
+}
 
     // --- 5. INITIALIZE ---
     onAuthStateChanged(auth, (user) => {
