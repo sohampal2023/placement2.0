@@ -658,33 +658,35 @@ window.addTopic = (subId) => {
    window.viewNote = (driveLink) => {
     if (!driveLink) return alert("Note link is missing.");
 
-    // 1. Convert any Drive link to the Secure Multipage Preview format
+    // 1. Transform the link
     const fileIdMatch = driveLink.match(/\/d\/([^/]+)/);
     if (!fileIdMatch) return alert("Invalid Link Format.");
     const fileId = fileIdMatch[1];
-
-    // Rebuild link: rm=minimal is the key for the clean multipage view
+    
+    // THE SECRET URL: Adding rm=minimal and using the preview endpoint
     const secureLink = `https://drive.google.com/file/d/${fileId}/preview?rm=minimal`;
 
     const viewerHtml = `
-        <div id="pdf-overlay" class="fixed inset-0 bg-slate-900/98 z-[200] flex flex-col">
-            <nav class="p-4 bg-white border-b flex justify-between items-center shadow-lg">
+        <div id="pdf-overlay" class="fixed inset-0 bg-slate-900/98 z-[200] flex flex-col p-2 md:p-8">
+            <nav class="max-w-6xl mx-auto w-full bg-white p-4 rounded-2xl flex justify-between items-center mb-4 shadow-2xl">
                 <div class="flex items-center gap-3">
-                    <div class="bg-blue-600 p-2 rounded-xl text-white shadow-lg"><i data-lucide="book-open"></i></div>
-                    <span class="font-black text-slate-800 uppercase tracking-widest text-xs">Full Module Notes</span>
+                    <div class="bg-blue-600 p-2 rounded-xl text-white shadow-lg"><i data-lucide="shield-check" class="w-5 h-5"></i></div>
+                    <span class="font-black text-slate-800 uppercase tracking-widest text-[10px]">Secure Study Portal • Anti-Copy Enabled</span>
                 </div>
                 <button onclick="document.getElementById('pdf-overlay').remove()" 
-                        class="bg-red-600 text-white px-8 py-3 rounded-2xl font-black hover:bg-red-700 transition-all shadow-xl shadow-red-200">
-                    Exit Classroom
+                        class="bg-red-600 text-white px-8 py-2.5 rounded-xl font-black text-xs hover:bg-red-700 transition-all shadow-xl">
+                    CLOSE CLASSROOM
                 </button>
             </nav>
             
-            <div class="flex-grow relative bg-slate-800 flex justify-center overflow-hidden">
+            <div class="max-w-5xl mx-auto w-full flex-grow relative bg-white rounded-[2.5rem] overflow-hidden shadow-2xl">
                 <iframe src="${secureLink}" 
-                        class="w-full h-full max-w-5xl border-none shadow-2xl" 
+                        class="w-full h-full border-none" 
+                        sandbox="allow-scripts allow-same-origin"
                         allow="autoplay"></iframe>
                 
                 <div class="absolute inset-0 z-10 pointer-events-none" 
+                     style="background: transparent;" 
                      oncontextmenu="return false;"></div>
             </div>
         </div>
