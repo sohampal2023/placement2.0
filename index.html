@@ -3,162 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GovtPrep Premium | AE, JE & Govt Exam Excellence</title>
+    <title>GovtPrep Premium | AE & JE Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .bg-gradient-premium { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
-        .card-hover:hover { transform: translateY(-5px); transition: all 0.3s ease; }
+        .pw-gradient { background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%); }
+        .glass-card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3); }
+        .shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900">
+<body class="bg-slate-50">
 
-    <nav class="sticky top-0 z-50 glass border-b border-gray-200">
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 items-center">
                 <div class="flex items-center gap-2">
-                    <div class="bg-blue-600 p-2 rounded-lg text-white">
-                        <i data-lucide="graduation-cap"></i>
+                    <div class="bg-blue-700 p-2 rounded-xl text-white shadow-lg">
+                        <i data-lucide="zap"></i>
                     </div>
-                    <span class="text-2xl font-bold tracking-tight text-blue-900">Govt<span class="text-blue-600">Prep</span></span>
+                    <span class="text-xl font-black text-slate-900 tracking-tight">GOVTPREP<span class="text-blue-600">.PRO</span></span>
                 </div>
-                <div class="hidden md:flex space-x-8 font-medium text-gray-600">
-                    <a href="#" class="hover:text-blue-600">AE/JE Batches</a>
-                    <a href="#" class="hover:text-blue-600">Test Series</a>
-                    <a href="#" class="hover:text-blue-600">Free Resources</a>
-                </div>
-                <div class="flex items-center gap-4">
-                    <button onclick="toggleModal()" class="text-blue-600 font-semibold px-4 py-2">Login</button>
-                    <button onclick="toggleModal()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-semibold shadow-lg hover:bg-blue-700 transition">Get Started</button>
+                
+                <div id="auth-state" class="flex items-center gap-4">
+                    <div class="animate-pulse bg-slate-200 h-10 w-24 rounded-full"></div>
                 </div>
             </div>
         </div>
     </nav>
 
-    <header class="bg-gradient-premium py-20 text-white relative overflow-hidden">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div class="grid md:grid-cols-2 gap-12 items-center">
-                <div>
-                    <span class="bg-blue-500/30 text-blue-100 px-4 py-1 rounded-full text-sm font-semibold uppercase tracking-wider">India's Most Trusted Tech Portal</span>
-                    <h1 class="text-5xl md:text-6xl font-extrabold mt-6 leading-tight">
-                        Crack AE & JE Exams <br><span class="text-blue-300">With Rankers' Logic.</span>
-                    </h1>
-                    <p class="mt-6 text-lg text-blue-100 max-w-lg">
-                        Structured video lectures, PDF notes, and industrial-grade mock tests designed by top educators for Electrical, Civil, and Mechanical aspirants.
-                    </p>
-                    <div class="mt-10 flex gap-4">
-                        <button class="bg-white text-blue-900 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-gray-100 transition">Explore Batches</button>
-                        <button class="border-2 border-white/30 backdrop-blur-sm px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition">Free Demo Test</button>
-                    </div>
+    <section class="pw-gradient text-white pt-20 pb-32 relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 relative z-10">
+            <div class="text-center">
+                <div class="inline-block px-4 py-1.5 mb-6 bg-blue-500/20 border border-blue-400/30 rounded-full text-blue-200 text-sm font-bold uppercase">
+                    Trusted by 50,000+ AE/JE Aspirants
                 </div>
-                <div class="hidden md:block">
-                    <img src="https://illustrations.popsy.co/white/studying.svg" alt="Education" class="w-full max-w-md mx-auto">
+                <h1 class="text-5xl md:text-7xl font-black mb-6 leading-tight">Your Success Is Our <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-200">Mission, Not Business.</span></h1>
+                <p class="text-lg text-blue-100/80 max-w-2xl mx-auto mb-10">Access premium AE/JE coaching at the most affordable price in India. High-quality lectures, notes, and test series.</p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <button class="bg-white text-blue-900 px-10 py-4 rounded-2xl font-bold shadow-2xl hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="play-circle"></i> Start Learning Now
+                    </button>
+                    <button class="bg-blue-600/30 border border-white/20 px-10 py-4 rounded-2xl font-bold hover:bg-blue-600/50 transition-all">
+                        View Test Series
+                    </button>
                 </div>
             </div>
         </div>
-    </header>
+        <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl"></div>
+    </section>
 
-    <section class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-3xl font-bold text-center mb-12">Choose Your Goal</h2>
-        <div class="grid md:grid-cols-3 gap-8">
-            <div class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm card-hover text-center">
-                <div class="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <i data-lucide="briefcase"></i>
-                </div>
-                <h3 class="text-xl font-bold mb-2">Assistant Engineer (AE)</h3>
-                <p class="text-gray-500 mb-6">In-depth conceptual batches for State PSC & Central AE roles.</p>
-                <button class="w-full py-3 rounded-xl border-2 border-orange-100 text-orange-600 font-bold hover:bg-orange-50 transition">View Batches</button>
-            </div>
-            <div class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm card-hover text-center">
-                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <i data-lucide="settings"></i>
-                </div>
-                <h3 class="text-xl font-bold mb-2">Junior Engineer (JE)</h3>
-                <p class="text-gray-500 mb-6">SSC JE, RRB JE, and State Electricity Board specialized courses.</p>
-                <button class="w-full py-3 rounded-xl border-2 border-blue-100 text-blue-600 font-bold hover:bg-blue-50 transition">View Batches</button>
-            </div>
-            <div class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm card-hover text-center">
-                <div class="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <i data-lucide="landmark"></i>
-                </div>
-                <h3 class="text-xl font-bold mb-2">General Govt Exams</h3>
-                <p class="text-gray-500 mb-6">Non-technical subjects, Aptitude, Reasoning, and Current Affairs.</p>
-                <button class="w-full py-3 rounded-xl border-2 border-purple-100 text-purple-600 font-bold hover:bg-purple-50 transition">View Batches</button>
-            </div>
+    <section class="max-w-7xl mx-auto px-4 -mt-16 relative z-20">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="batches-container">
+            <div class="glass-card p-6 rounded-3xl shadow-xl animate-pulse h-64 bg-white/50"></div>
+            <div class="glass-card p-6 rounded-3xl shadow-xl animate-pulse h-64 bg-white/50"></div>
+            <div class="glass-card p-6 rounded-3xl shadow-xl animate-pulse h-64 bg-white/50"></div>
         </div>
     </section>
 
-    <section class="bg-gray-100 py-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 class="text-4xl font-bold mb-4 italic">Why GovtPrep Premium?</h2>
-            <p class="text-gray-600 mb-16">The most comprehensive ecosystem for technical aspirants.</p>
-            <div class="grid md:grid-cols-4 gap-6">
-                <div class="p-6">
-                    <i data-lucide="video" class="mx-auto mb-4 text-blue-600"></i>
-                    <h4 class="font-bold">Live Classes</h4>
-                    <p class="text-sm text-gray-500">Interactive sessions with real-time doubt clearing.</p>
-                </div>
-                <div class="p-6">
-                    <i data-lucide="file-text" class="mx-auto mb-4 text-blue-600"></i>
-                    <h4 class="font-bold">Smart Notes</h4>
-                    <p class="text-sm text-gray-500">Concise PDF notes for quick revision before exams.</p>
-                </div>
-                <div class="p-6">
-                    <i data-lucide="gauge" class="mx-auto mb-4 text-blue-600"></i>
-                    <h4 class="font-bold">Rank Predictor</h4>
-                    <p class="text-sm text-gray-500">AI-driven analysis of where you stand in India.</p>
-                </div>
-                <div class="p-6">
-                    <i data-lucide="shield-check" class="mx-auto mb-4 text-blue-600"></i>
-                    <h4 class="font-bold">Secure CBT</h4>
-                    <p class="text-sm text-gray-500">Industry-standard test engine with anti-cheat lock.</p>
-                </div>
+    <div id="loginModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-[100] p-4">
+        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl scale-95 transition-transform duration-300">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-black text-slate-800">Login to Study</h2>
+                <p class="text-slate-500 mt-2">Enter your details to access your batches</p>
             </div>
-        </div>
-    </section>
-
-    <footer class="bg-white border-t border-gray-200 py-12">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-gray-500">© 2026 GovtPrep Premium. A Pro-Grade Learning Ecosystem for AE & JE.</p>
-        </div>
-    </footer>
-
-    <div id="authModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[60] p-4">
-        <div class="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl">
-            <div class="p-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">Welcome Back</h2>
-                    <button onclick="toggleModal()" class="text-gray-400 hover:text-black">
-                        <i data-lucide="x"></i>
-                    </button>
+            <div class="space-y-4">
+                <input id="email" type="email" placeholder="Email Address" class="w-full px-6 py-4 rounded-2xl bg-slate-100 border-none focus:ring-2 focus:ring-blue-600">
+                <input id="password" type="password" placeholder="Password" class="w-full px-6 py-4 rounded-2xl bg-slate-100 border-none focus:ring-2 focus:ring-blue-600">
+                <button onclick="handleLogin()" class="w-full bg-blue-700 text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-800 transition-all">Continue</button>
+                <div class="relative py-4">
+                    <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200"></div></div>
+                    <div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-2 text-slate-400">Or use social</span></div>
                 </div>
-                <div class="space-y-4">
-                    <input type="email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <input type="password" placeholder="Password" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700">Sign In</button>
-                    <div class="text-center text-sm text-gray-500 py-2">OR</div>
-                    <button class="w-full border border-gray-200 py-3 rounded-xl flex items-center justify-center gap-2 font-semibold hover:bg-gray-50">
-                        <img src="https://www.svgrepo.com/show/355037/google.svg" class="w-5" alt="Google">
-                        Continue with Google
-                    </button>
-                </div>
+                <button onclick="handleGoogleLogin()" class="w-full border border-slate-200 py-4 rounded-2xl flex items-center justify-center gap-3 font-semibold hover:bg-slate-50 transition-all">
+                    <img src="https://www.svgrepo.com/show/355037/google.svg" class="w-5" alt="G"> Google Account
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        // Initialize Icons
+        // 1. FIREBASE CONFIGURATION
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
         lucide.createIcons();
 
-        // Modal Logic
-        function toggleModal() {
-            const modal = document.getElementById('authModal');
-            modal.classList.toggle('hidden');
-            modal.classList.toggle('flex');
+        // 2. AUTH LOGIC
+        auth.onAuthStateChanged(user => {
+            const authDiv = document.getElementById('auth-state');
+            if (user) {
+                authDiv.innerHTML = `
+                    <div class="flex items-center gap-3 bg-slate-100 p-1.5 pr-4 rounded-full">
+                        <img src="${user.photoURL || 'https://ui-avatars.com/api/?name='+user.email}" class="w-8 h-8 rounded-full">
+                        <span class="text-sm font-bold text-slate-700">Dashboard</span>
+                        <button onclick="auth.signOut()" class="text-slate-400 hover:text-red-500"><i data-lucide="log-out" class="w-4"></i></button>
+                    </div>`;
+            } else {
+                authDiv.innerHTML = `
+                    <button onclick="toggleModal()" class="text-blue-700 font-bold px-4">Login</button>
+                    <button onclick="toggleModal()" class="bg-blue-700 text-white px-6 py-2.5 rounded-full font-bold shadow-lg hover:shadow-blue-200 transition-all">Get Batch</button>`;
+            }
+            lucide.createIcons();
+        });
+
+        function handleGoogleLogin() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).then(() => toggleModal());
         }
+
+        function toggleModal() {
+            const m = document.getElementById('loginModal');
+            m.classList.toggle('hidden');
+            m.classList.toggle('flex');
+        }
+
+        // 3. FETCH DYNAMIC BATCHES (Realtime Database)
+        function loadBatches() {
+            const batchContainer = document.getElementById('batches-container');
+            
+            db.ref('premium_batches').on('value', (snapshot) => {
+                const batches = snapshot.val();
+                if (!batches) {
+                    batchContainer.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 italic">No batches live today. Check back later!</div>`;
+                    return;
+                }
+
+                let html = '';
+                Object.keys(batches).forEach(key => {
+                    const b = batches[key];
+                    html += `
+                        <div class="glass-card p-6 rounded-3xl shadow-xl hover:scale-105 transition-all bg-white group cursor-pointer">
+                            <div class="bg-blue-100 text-blue-700 w-12 h-12 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-700 group-hover:text-white transition-colors">
+                                <i data-lucide="book-open"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">${b.name}</h3>
+                            <p class="text-sm text-slate-500 mb-6">${b.description}</p>
+                            <div class="flex justify-between items-center mt-auto pt-4 border-t border-slate-100">
+                                <span class="text-2xl font-black text-slate-900">₹${b.price}</span>
+                                <button class="bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-bold">Buy Now</button>
+                            </div>
+                        </div>`;
+                });
+                batchContainer.innerHTML = html;
+                lucide.createIcons();
+            });
+        }
+
+        // Initialize
+        loadBatches();
     </script>
 </body>
 </html>
