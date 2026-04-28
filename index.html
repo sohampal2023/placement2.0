@@ -282,7 +282,26 @@
                         </div>
                         ${isTeacher ? 
                             `<button onclick="window.location.href='study-hub.html?batch=${b.id}'" class="bg-blue-600 text-white px-6 py-4 rounded-2xl font-black">Start Teaching</button>` 
-                            : 
+                            : <div id="topicModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-[60] p-4">
+    <div class="bg-white w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-2xl font-black">Add Study Material</h3>
+            <button onclick="toggleTopicModal()" class="text-slate-400"><i data-lucide="x"></i></button>
+        </div>
+        
+        <div class="space-y-4">
+            <input id="topic-title" type="text" placeholder="Topic Title (e.g. KVL & KCL)" class="w-full p-4 rounded-2xl bg-slate-100 outline-none focus:ring-2 focus:ring-blue-600">
+            <input id="topic-video" type="text" placeholder="YouTube Video ID (e.g. dQw4w9WgXcQ)" class="w-full p-4 rounded-2xl bg-slate-100 outline-none focus:ring-2 focus:ring-blue-600">
+            <input id="topic-pdf" type="text" placeholder="Google Drive PDF Link" class="w-full p-4 rounded-2xl bg-slate-100 outline-none focus:ring-2 focus:ring-blue-600">
+            
+            <div class="flex gap-4 pt-4">
+                <button onclick="saveNewTopic()" class="flex-grow bg-blue-600 text-white rounded-2xl font-black py-4 shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all">
+                    Upload to Batch
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
                             `<button onclick="requestEnrollment('${b.id}', '${b.name}')" class="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black">Join Batch</button>`
                         }
                     </div>
@@ -317,7 +336,94 @@
         loadBatches(); // Refresh buttons based on user state
         lucide.createIcons();
     });
+let activeSubjectId = null; // Tracks which subject we are adding topics to
 
+// --- 1. TOGGLE MODALS ---
+window.toggleTopicModal = (subId = null) => {
+    activeSubjectId = subId;
+    const m = document.getElementById('topicModal');
+    m.classList.toggle('hidden');
+    m.classList.toggle('flex');
+};
+
+// --- 2. SAVE TOPIC (VIDEO/PDF) ---
+window.saveNewTopic = async () => {
+    const title = document.getElementById('topic-title').value;
+    const video = document.getElementById('topic-video').value;
+    const pdf = document.getElementById('topic-pdf').value;
+
+    if (!title || !activeSubjectId) return alert("Title is required!");
+
+    const topicRef = push(ref(db, `curriculum/${batchId}/subjects/${activeSubjectId}/topics`));
+    await set(topicRef, {
+        id: topicRef.key,
+        title,
+        video,
+        pdf,
+        timestamp: Date.now()
+    });
+
+    // Reset and Close
+    document.getElementById('topic-title').value = '';
+    document.getElementById('topic-video').value = '';
+    document.getElementById('topic-pdf').value = '';
+    window.toggleTopicModal();
+};
+
+// --- 3. UPDATED LOAD CURRICULUM ---
+function loadCurriculum() {
+    const container = document.getElementById('curriculum-container');
+    const isTeacher = auth.currentUser && auth.currentUser.email === ADMIN_EMAIL;
+
+    onValue(ref(db, `curriculum/${batchId}/subjects`), (snapshot) => {
+        const subjects = snapshot.val();
+        if (!subjects) {
+            container.innerHTML = `<div class="text-center py-20 text-slate-400 font-medium">No subjects added yet.</div>`;
+            return;
+        }
+
+        let html = '';
+        Object.keys(subjects).forEach(subId => {
+            const sub = subjects[subId];
+            const topics = sub.topics ? Object.values(sub.topics) : [];
+
+            html += `
+                <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6">
+                    <div class="p-6 flex justify-between items-center bg-slate-50/50">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-blue-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100">
+                                <i data-lucide="book"></i>
+                            </div>
+                            <h4 class="text-xl font-black text-slate-800">${sub.title}</h4>
+                        </div>
+                        ${isTeacher ? 
+                            `<button onclick="toggleTopicModal('${subId}')" class="text-blue-600 bg-white border border-blue-100 px-4 py-2 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all uppercase tracking-tighter">
+                                + Add Topic
+                            </button>` : ''
+                        }
+                    </div>
+
+                    <div class="p-4 space-y-2">
+                        ${topics.length > 0 ? topics.map(t => `
+                            <div class="flex justify-between items-center p-4 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-100">
+                                <div class="flex items-center gap-4">
+                                    <i data-lucide="play-circle" class="text-slate-400 w-5 h-5"></i>
+                                    <span class="font-bold text-slate-700">${t.title}</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    ${t.video ? `<button onclick="playVideo('${t.video}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><i data-lucide="video"></i></button>` : ''}
+                                    ${t.pdf ? `<a href="${t.pdf}" target="_blank" class="p-2 text-orange-600 hover:bg-orange-50 rounded-lg"><i data-lucide="file-text"></i></a>` : ''}
+                                </div>
+                            </div>
+                        `).join('') : `<p class="text-center py-4 text-xs text-slate-400">No topics uploaded in this subject.</p>`}
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+        lucide.createIcons();
+    });
+}
     loadBatches();
     lucide.createIcons();
 </script>
