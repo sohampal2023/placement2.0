@@ -68,25 +68,22 @@
                 </div>
             </div>
         </div>
-        <div id="study-hub-view" class="hidden fixed inset-0 bg-white z-[100] overflow-y-auto custom-scrollbar">
-    <nav class="sticky top-0 bg-white border-b p-6 flex justify-between items-center z-10">
-        <div class="flex items-center gap-3">
-            <button onclick="closeStudyHub()" class="p-2 hover:bg-slate-100 rounded-full transition-all">
+        <div id="study-hub-view" class="hidden fixed inset-0 bg-slate-50 z-[100] overflow-y-auto custom-scrollbar">
+    <nav class="sticky top-0 bg-white border-b p-6 flex justify-between items-center z-10 shadow-md">
+        <div class="flex items-center gap-4">
+            <button onclick="closeStudyHub()" class="p-3 hover:bg-slate-100 rounded-2xl transition-all">
                 <i data-lucide="arrow-left"></i>
             </button>
-            <h2 id="hub-batch-title" class="text-xl font-black text-blue-600">Classroom</h2>
+            <h2 id="hub-batch-title" class="text-2xl font-black text-slate-900 tracking-tighter uppercase">Classroom</h2>
         </div>
-        <div id="teacher-hub-tools" class="hidden">
-            <button onclick="toggleSubModal()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-sm">
-                + Add Subject
-            </button>
-        </div>
+        
+        <button id="teacher-add-sub-btn" onclick="saveSubject()" class="hidden bg-blue-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+            + Add Subject
+        </button>
     </nav>
 
-    <div class="max-w-5xl mx-auto p-8">
-        <div id="hub-curriculum-container" class="space-y-6">
-            </div>
-    </div>
+    <div class="max-w-5xl mx-auto p-10" id="hub-curriculum-container">
+        </div>
 </div>
     </div>
 </div>
@@ -423,7 +420,7 @@ window.saveNewTopic = async () => {
 let currentBatchId = null;
 
     // --- 1. NAVIGATION LOGIC (The "Single-Page" Switch) ---
-    window.openStudyHub = (bId, bName) => {
+   window.openStudyHub = (bId, bName) => {
     currentBatchId = bId;
     const user = auth.currentUser;
     
@@ -433,20 +430,20 @@ let currentBatchId = null;
     }
 
     const isAdmin = user.email === ADMIN_EMAIL;
+    const btn = document.getElementById('teacher-add-sub-btn');
 
     if (isAdmin) {
-        // Teacher/Admin can always enter
-        document.getElementById('teacher-add-sub-btn').classList.remove('hidden');
+        // Teacher/Admin Authority
+        if (btn) btn.classList.remove('hidden');
         launchHub(bName);
     } else {
-        // Students must be authorized
+        // Student Authorization Check
         onValue(ref(db, `authorized_students/${bId}/${user.uid}`), (snap) => {
             if (snap.exists()) {
-                document.getElementById('teacher-add-sub-btn').classList.add('hidden');
+                if (btn) btn.classList.add('hidden');
                 launchHub(bName);
             } else {
                 alert("Access Denied: You need teacher approval for this batch.");
-                // Automatically send request if they haven't yet
                 window.requestEnrollment(bId, bName);
             }
         }, { onlyOnce: true });
