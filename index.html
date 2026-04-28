@@ -262,36 +262,46 @@ window.approveStudent = async (batchId, studentUid) => {
     };
 
     // --- 4. DATA LOADERS ---
-    function loadEnrollmentRequests() {
-        onValue(ref(db, 'enrollment_requests'), (snapshot) => {
-            const container = document.getElementById('pending-requests');
-            const data = snapshot.val();
-            if (!data) {
-                container.innerHTML = `<p class="text-slate-500 text-sm italic">No pending requests.</p>`;
-                return;
-            }
-            let html = '';
-            
-            Object.keys(data).forEach(batchId => {
-                const students = data[batchId];
-                Object.keys(students).forEach(uid => {
-                    const req = students[uid];
-                    html += `
-                        <div class="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-700 mb-3">
-                            <div>
-                                <p class="font-bold text-sm text-white">${req.email}</p>
-                                <p class="text-[10px] text-blue-400 uppercase font-black">${req.batchName}</p>
+    // --- Block 3: Enrollment Request Monitor ---
+function loadEnrollmentRequests() {
+    onValue(ref(db, 'enrollment_requests'), (snapshot) => {
+        const container = document.getElementById('pending-requests');
+        const data = snapshot.val();
+        
+        if (!data) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center py-6 opacity-30">
+                    <i data-lucide="check-circle-2" class="w-8 h-8 mb-2"></i>
+                    <p class="text-xs font-bold uppercase">All Students Approved</p>
+                </div>`;
+            return;
+        }
+
+        let html = '';
+        Object.keys(data).forEach(batchId => {
+            const batchRequests = data[batchId];
+            Object.keys(batchRequests).forEach(uid => {
+                const req = batchRequests[uid];
+                html += `
+                    <div class="flex justify-between items-center bg-slate-900/50 p-5 rounded-2xl border border-slate-700 hover:border-blue-500 transition-all group">
+                        <div class="text-left">
+                            <p class="font-bold text-white text-sm">${req.email}</p>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="bg-blue-600/20 text-blue-400 text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">
+                                    ${req.batchName}
+                                </span>
                             </div>
-                            <button onclick="approveStudent('${batchId}', '${uid}')" class="bg-green-600 p-2 rounded-xl">
-                                <i data-lucide="check" class="w-4 h-4"></i>
-                            </button>
-                        </div>`;
-                });
+                        </div>
+                        <button onclick="approveStudent('${batchId}', '${uid}')" class="bg-green-600 text-white p-3 rounded-xl shadow-lg shadow-green-900/20 hover:bg-green-500 hover:scale-110 active:scale-95 transition-all">
+                            <i data-lucide="user-plus" class="w-5 h-5"></i>
+                        </button>
+                    </div>`;
             });
-            container.innerHTML = html;
-            lucide.createIcons();
         });
-    }
+        container.innerHTML = html;
+        lucide.createIcons();
+    });
+}
 
     function loadBatches() {
     const container = document.getElementById('batches-container');
