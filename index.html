@@ -519,14 +519,6 @@ function launchHub(name) {
         document.body.style.overflow = 'hidden'; // Stop background scrolling
         loadCurriculum();
     }
-
-    window.closeStudyHub = () => {
-    const hubView = document.getElementById('study-hub-view');
-    hubView.classList.add('hidden');
-    hubView.style.display = 'none'; // Essential to hide the fixed overlay
-    document.body.style.overflow = 'auto';
-};
-
     // --- 2. TEACHER HUB ACTIONS ---
     // --- TEACHER: Build Curriculum ---
 window.saveSubject = async () => {
@@ -637,49 +629,49 @@ window.addTopic = (subId) => {
         lucide.createIcons();
     });
 };
-   window.viewNote = (driveLink) => {
-    if (!driveLink) return alert("Note link is missing.");
+   // --- FIX: Clean Navigation ---
+window.closeStudyHub = () => {
+    const hubView = document.getElementById('study-hub-view');
+    const container = document.getElementById('hub-curriculum-container');
+    const path = document.getElementById('hub-path');
 
-    // UNIVERSAL LINK EXTRACTOR:
-    // This regex looks for the ID between '/d/' and the next '/' or '?'
-    // It works for: .../file/d/ID/view, .../open?id=ID, and many more.
-    const fileIdMatch = driveLink.match(/(?:d\/|id=)([\w-]+)/);
-    
-    if (!fileIdMatch) {
-        alert("This doesn't look like a valid Google Drive link. Please check it!");
-        return;
+    if (hubView) {
+        hubView.classList.add('hidden');
+        hubView.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        
+        // Reset the path and container so it doesn't show old data next time
+        if (container) container.innerHTML = '';
+        if (path) path.innerText = '';
+        console.log("Classroom Cleaned and Closed.");
     }
+};
+
+// --- FIX: Secure Note Viewer Cleanup ---
+window.viewNote = (driveLink) => {
+    // 1. Remove any existing overlay first to prevent duplicates
+    const existing = document.getElementById('pdf-overlay');
+    if (existing) existing.remove();
+
+    const fileIdMatch = driveLink.match(/(?:d\/|id=)([\w-]+)/);
+    if (!fileIdMatch) return alert("Invalid Link");
     
-    const fileId = fileIdMatch[1];
-    
-    // Create the Standard Preview Link
-    const standardLink = `https://drive.google.com/file/d/${fileId}/preview`;
+    // We use the 'preview' link. 
+    // IMPORTANT: Ensure the file in Drive is set to "Anyone with the link"
+    const standardLink = `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
 
     const viewerHtml = `
-        <div id="pdf-overlay" class="fixed inset-0 bg-slate-900/90 z-[200] flex flex-col p-4 md:p-8 animate-in fade-in duration-200">
+        <div id="pdf-overlay" class="fixed inset-0 bg-slate-900/95 z-[2000] flex flex-col p-4 md:p-8">
             <nav class="max-w-6xl mx-auto w-full bg-white p-4 rounded-2xl flex justify-between items-center mb-4 shadow-xl">
-                <div class="flex items-center gap-3">
-                    <div class="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-100">
-                        <i data-lucide="file-text" class="w-5 h-5"></i>
-                    </div>
-                    <span class="font-black text-slate-800 uppercase text-xs tracking-tighter">Classroom Notes</span>
-                </div>
-                <button onclick="document.getElementById('pdf-overlay').remove()" 
-                        class="bg-red-600 text-white px-8 py-2.5 rounded-xl font-black text-xs hover:bg-red-700 transition-all shadow-xl shadow-red-200">
-                    CLOSE NOTES
-                </button>
+                <span class="font-black text-slate-800 uppercase text-xs">Note Viewer</span>
+                <button onclick="this.closest('#pdf-overlay').remove()" class="bg-red-600 text-white px-8 py-2 rounded-xl font-black text-xs">CLOSE NOTE</button>
             </nav>
-            
-            <div class="max-w-6xl mx-auto w-full flex-grow bg-white rounded-[2.5rem] overflow-hidden shadow-2xl relative">
-                <iframe src="${standardLink}" 
-                        class="w-full h-full border-none" 
-                        allow="autoplay"></iframe>
+            <div class="max-w-6xl mx-auto w-full flex-grow bg-white rounded-3xl overflow-hidden shadow-2xl relative">
+                <iframe src="${standardLink}" class="w-full h-full border-none" allow="autoplay"></iframe>
             </div>
-        </div>
-    `;
+        </div>`;
     
     document.body.insertAdjacentHTML('beforeend', viewerHtml);
-    lucide.createIcons();
 };
     window.loadNoteList = (subId, chapterId) => {
     const container = document.getElementById('hub-curriculum-container');
