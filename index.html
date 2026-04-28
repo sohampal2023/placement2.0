@@ -638,22 +638,29 @@ window.addTopic = (subId) => {
     });
 };
     window.viewNote = (driveLink) => {
-    // 1. Convert standard Drive link to Preview link
-    // Standard: drive.google.com/file/d/ID/view
-    // Preview: drive.google.com/file/d/ID/preview
-    let previewLink = driveLink.replace('/view', '/preview').replace('?usp=sharing', '');
-    
-    // 2. Create the Viewer Overlay
+    if (!driveLink) return alert("Invalid Link");
+
+    // 1. Transform the link to bypass CSP blocks
+    // This converts .../file/d/12345/view to .../file/d/12345/preview
+    let secureLink = driveLink.split('?')[0]; // Remove extra parameters
+    secureLink = secureLink.replace('/view', '/preview');
+    secureLink = secureLink.replace('/edit', '/preview');
+
+    // 2. Create the Modal Viewer
     const viewerHtml = `
-        <div id="pdf-overlay" class="fixed inset-0 bg-slate-900/95 z-[200] flex flex-col">
-            <nav class="p-4 bg-white border-b flex justify-between items-center">
-                <span class="font-black text-slate-800 uppercase tracking-tighter">Secure Note Viewer</span>
-                <button onclick="document.getElementById('pdf-overlay').remove()" class="bg-red-50 text-red-600 px-6 py-2 rounded-xl font-bold">Close Notes</button>
-            </nav>
-            <div class="flex-grow relative">
-                <iframe src="${previewLink}" class="w-full h-full" allow="autoplay"></iframe>
-                
-                <div class="absolute inset-0 z-10 bg-transparent" oncontextmenu="return false;"></div>
+        <div id="pdf-overlay" class="fixed inset-0 bg-slate-900/95 z-[200] flex flex-col p-4 md:p-10">
+            <div class="max-w-5xl mx-auto w-full h-full flex flex-col">
+                <nav class="flex justify-between items-center mb-4 bg-white p-4 rounded-2xl">
+                    <span class="font-black text-blue-600 uppercase tracking-tighter">Secure Study Material</span>
+                    <button onclick="document.getElementById('pdf-overlay').remove()" class="bg-red-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-red-600 transition-all">
+                        Exit Note
+                    </button>
+                </nav>
+                <div class="flex-grow bg-white rounded-3xl overflow-hidden relative shadow-2xl">
+                    <iframe src="${secureLink}" class="w-full h-full border-none" allow="autoplay"></iframe>
+                    
+                    <div class="absolute inset-0 z-10 bg-transparent pointer-events-none" oncontextmenu="return false;"></div>
+                </div>
             </div>
         </div>
     `;
