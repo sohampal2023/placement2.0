@@ -68,24 +68,6 @@
                 </div>
             </div>
         </div>
-        <div id="study-hub-view" class="hidden fixed inset-0 bg-white z-[200] overflow-y-auto w-full h-full">
-    <nav class="sticky top-0 bg-white border-b p-6 flex justify-between items-center z-[210] shadow-md">
-        <div class="flex items-center gap-4">
-            <button onclick="closeStudyHub()" class="p-3 hover:bg-slate-100 rounded-2xl transition-all">
-                <i data-lucide="arrow-left"></i>
-            </button>
-            <h2 id="hub-batch-title" class="text-2xl font-black text-slate-800 tracking-tighter uppercase">Classroom</h2>
-        </div>
-        <div id="teacher-hub-tools" class="hidden">
-            <button id="teacher-add-sub-btn" onclick="saveSubject()" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg">
-                + Add Subject
-            </button>
-        </div>
-    </nav>
-
-    <div class="max-w-7xl mx-auto p-10" id="hub-curriculum-container">
-        </div>
-</div>
     </div>
 </div>
     <header class="pw-gradient text-white pt-24 pb-40 relative overflow-hidden">
@@ -150,6 +132,24 @@
             </div>
         </div>
     </div>
+    <div id="study-hub-view" class="hidden fixed inset-0 bg-white z-[200] overflow-y-auto w-full h-full">
+    <nav class="sticky top-0 bg-white border-b p-6 flex justify-between items-center z-[210] shadow-md">
+        <div class="flex items-center gap-4">
+            <button onclick="closeStudyHub()" class="p-3 hover:bg-slate-100 rounded-2xl transition-all">
+                <i data-lucide="arrow-left"></i>
+            </button>
+            <h2 id="hub-batch-title" class="text-2xl font-black text-slate-800 tracking-tighter uppercase">Classroom</h2>
+        </div>
+        <div id="teacher-hub-tools" class="hidden">
+            <button id="teacher-add-sub-btn" onclick="saveSubject()" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg">
+                + Add Subject
+            </button>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto p-10" id="hub-curriculum-container">
+        </div>
+</div>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
     import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-database.js";
