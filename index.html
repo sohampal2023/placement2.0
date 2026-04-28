@@ -306,50 +306,56 @@ function loadEnrollmentRequests() {
 }
 function loadBatches() {
     const container = document.getElementById('batches-container');
-    onValue(ref(db, 'premium_batches'), (snapshot) => {
-        const data = snapshot.val();
-        if (!data) {
-            container.innerHTML = `<div class="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200 text-slate-400 font-bold uppercase tracking-widest">No Batches Live</div>`;
-            return;
-        }
+    const user = auth.currentUser;
+    if (!user) return;
 
-        const user = auth.currentUser;
-        const isMaster = user && user.email === ADMIN_EMAIL;
+    const isMaster = user.email === ADMIN_EMAIL;
+
+    // 1. Get Teacher Approval Data
+    onValue(ref(db, 'authorized_students'), (authSnap) => {
+        const authData = authSnap.val() || {};
         
-        container.innerHTML = Object.keys(data).map(key => {
-            const b = data[key];
-            const btnText = isMaster ? 'Start Teaching' : 'Join Batch';
-            const btnClass = isMaster ? 'bg-blue-600' : 'bg-slate-900';
+        // 2. Get All Live Batches
+        onValue(ref(db, 'premium_batches'), (batchSnap) => {
+            const data = batchSnap.val();
+            if (!data) {
+                container.innerHTML = `<p class="col-span-full text-center py-20 text-slate-400 font-bold uppercase tracking-widest opacity-30">No active batches available</p>`;
+                return;
+            }
 
-            // Authority Tools for Admin/Teacher
-            const masterTools = isMaster ? `
-                <div class="absolute top-6 right-6 flex gap-2">
-                    <button onclick="editBatch('${b.id}', '${b.name}')" class="p-2 bg-white/80 rounded-xl text-slate-600 hover:text-blue-600 shadow-sm transition-all"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                    <button onclick="deleteBatch('${b.id}')" class="p-2 bg-white/80 rounded-xl text-slate-600 hover:text-red-600 shadow-sm transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                </div>
-            ` : '';
+            container.innerHTML = Object.keys(data).map(key => {
+                const b = data[key];
+                // Check if this specific student is approved for this specific batch
+                const isApproved = authData[b.id] && authData[b.id][user.uid];
 
-            return `
-            <div class="glass-card p-8 rounded-[3rem] flex flex-col h-full bg-white relative">
-                ${masterTools}
-                <div class="bg-blue-50 text-blue-600 w-16 h-16 rounded-3xl flex items-center justify-center mb-8 shadow-inner">
-                    <i data-lucide="layers"></i>
-                </div>
-                <h3 class="text-2xl font-black text-slate-900 mb-3">${b.name}</h3>
-                <p class="text-slate-500 font-medium mb-10 leading-relaxed flex-grow">${b.description}</p>
-                <div class="flex justify-between items-center pt-6 border-t border-slate-50">
-                    <div>
-                        <span class="text-[10px] font-black text-slate-400 block tracking-widest uppercase mb-1">Course Fee</span>
-                        <span class="text-3xl font-black text-blue-600">₹${b.price}</span>
+                // Logic: Access is granted if you are the Teacher OR an Approved Student
+                const hasAccess = isMaster || isApproved;
+                const btnText = hasAccess ? (isMaster ? 'Start Teaching' : 'Open Classroom') : 'Join Batch';
+                const btnClass = hasAccess ? 'bg-blue-600' : 'bg-slate-900';
+
+                return `
+                <div class="glass-card p-10 rounded-[3rem] flex flex-col h-full bg-white relative transition-all hover:shadow-2xl border border-transparent hover:border-blue-100">
+                    ${isApproved ? `<div class="absolute top-6 right-6 bg-green-500 text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg shadow-green-100">Purchased</div>` : ''}
+                    
+                    <div class="bg-blue-50 text-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-inner"><i data-lucide="layers"></i></div>
+                    
+                    <h3 class="text-2xl font-black text-slate-900 mb-3 uppercase tracking-tighter">${b.name}</h3>
+                    <p class="text-slate-500 font-medium mb-10 flex-grow leading-relaxed">${b.description}</p>
+                    
+                    <div class="flex justify-between items-center pt-6 border-t border-slate-50">
+                        <div>
+                            <span class="text-[10px] font-black text-slate-400 block tracking-widest uppercase">Course Fee</span>
+                            <span class="text-3xl font-black text-blue-600">₹${b.price}</span>
+                        </div>
+                        <button onclick="openStudyHub('${b.id}', '${b.name}')" 
+                                class="${btnClass} text-white px-10 py-4 rounded-3xl font-black shadow-xl hover:scale-105 active:scale-95 transition-all">
+                            ${btnText}
+                        </button>
                     </div>
-                    <button onclick="openStudyHub('${b.id}', '${b.name}')" 
-                            class="${btnClass} text-white px-8 py-4 rounded-2xl font-black shadow-xl hover:scale-105 active:scale-95 transition-all">
-                        ${btnText}
-                    </button>
-                </div>
-            </div>`;
-        }).join('');
-        lucide.createIcons();
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+        });
     });
 }
     window.deleteBatch = async (id) => {
