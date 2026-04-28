@@ -636,6 +636,104 @@ window.finalizeCBTSetup = async (type) => {
         window.loadStudentRoster();
     });
 };
+        // --- 1. NAVIGATION HELPERS (Exit != Logout) ---
+window.exitToDashboard = () => {
+    // Only switches the view, does not call signOut()
+    window.showPanel('admin-panel');
+    window.renderAdminDashboard();
+};
+
+window.portalLogout = () => {
+    // This is the only function that actually logs you out
+    if(confirm("Are you sure you want to logout?")) {
+        signOut(auth).then(() => {
+            location.reload(); // Hard reset only on actual logout
+        });
+    }
+};
+
+// --- 2. INTERVIEW MANAGER (Scheduler & AI Logic) ---
+window.openInterviewManager = () => {
+    const mainView = document.getElementById('admin-main-view');
+    mainView.innerHTML = `
+        <div class="bg-white p-10 rounded-[3rem] shadow-2xl border-4 border-indigo-50 animate-in zoom-in-95">
+            <div class="flex justify-between items-center mb-8 border-b pb-6">
+                <h2 class="text-3xl font-black italic uppercase tracking-tighter">📅 Interview Scheduler & AI Logic</h2>
+                <button onclick="window.exitToDashboard()" class="bg-slate-100 text-slate-500 px-6 py-2 rounded-2xl font-black hover:bg-slate-200">EXIT WINDOW</button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <div class="space-y-6">
+                    <input type="text" id="sched-id" placeholder="Candidate ID (e.g. 7811)" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold outline-none focus:ring-2 ring-indigo-500">
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <select id="sched-mode" class="p-4 bg-slate-50 border rounded-2xl font-bold" onchange="document.getElementById('ai-marking-area').classList.toggle('hidden', this.value !== 'AI')">
+                            <option value="LIVE">GHOST LIVE</option>
+                            <option value="AI">AI AUTO-MARK</option>
+                        </select>
+                        <input type="number" id="sched-time" placeholder="Secs/Qn" value="60" class="p-4 bg-slate-50 border rounded-2xl font-bold">
+                    </div>
+
+                    <div id="ai-marking-area" class="hidden space-y-2">
+                        <label class="text-[10px] font-black text-red-600 uppercase ml-2">AI Format: 1. Qn [Keywords: x, y] Marks: 20</label>
+                        <textarea id="ai-logic-text" placeholder="1. Define FMCW Radar. [Keywords: frequency, modulation, continuous, wave] Marks: 20" class="w-full h-48 p-4 bg-slate-900 text-green-400 font-mono text-xs rounded-2xl outline-none"></textarea>
+                    </div>
+
+                    <button onclick="window.broadcastInterviewConfig()" class="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-lg shadow-xl hover:bg-indigo-700 transition-all">ACTIVATE SESSION</button>
+                </div>
+
+                <div class="bg-slate-900 p-8 rounded-[2.5rem] text-white">
+                    <h4 class="text-indigo-400 font-black text-xs uppercase mb-4 tracking-widest">Live Viva Monitor</h4>
+                    <div class="aspect-video bg-black rounded-3xl border border-slate-800 flex items-center justify-center mb-4 overflow-hidden">
+                        <p class="text-[10px] text-slate-600 italic">Screen Share Feed Ready...</p>
+                    </div>
+                    <div id="viva-transcript" class="h-32 overflow-y-auto bg-black p-4 rounded-2xl text-[10px] font-mono text-indigo-300 italic border border-slate-800 mb-4">
+                        Transcript: Waiting for voice...
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" id="manual-score" placeholder="Mark" class="bg-slate-800 p-3 rounded-xl border border-slate-700 text-white">
+                        <input type="text" id="manual-reason" placeholder="Deduction reason" class="bg-slate-800 p-3 rounded-xl border border-slate-700 text-white text-[10px]">
+                    </div>
+                    <button onclick="window.syncLiveMarks()" class="w-full bg-red-600 text-white py-3 rounded-xl font-black text-xs mt-2">DEDUCT & ALERT STUDENT</button>
+                </div>
+            </div>
+        </div>`;
+};
+
+// --- 3. LOGIC FOR BROADCASTING ---
+window.broadcastInterviewConfig = () => {
+    const id = document.getElementById('sched-id').value;
+    const mode = document.getElementById('sched-mode').value;
+    const bank = document.getElementById('ai-logic-text').value;
+
+    if(!id) return alert("Enter Student ID!");
+
+    set(ref(db, 'active_interview_session'), {
+        target: id,
+        mode: mode,
+        bank: mode === 'AI' ? bank : "LIVE_STREAM",
+        status: "READY",
+        timestamp: Date.now()
+    }).then(() => alert("Interview Config Pushed. Student can now join."));
+};
+
+// --- 4. NEW REGISTRATION (Manually added as requested) ---
+window.approveCandidate = (key, name, email) => {
+    const newID = Math.floor(1000 + Math.random() * 9000);
+    const pass = "PASS" + Math.floor(100 + Math.random() * 899);
+
+    set(ref(db, `verified_students/${newID}`), {
+        name: name,
+        email: email,
+        password: pass,
+        cbt_enabled: false,
+        int_enabled: false,
+        rank: 7 // Based on your profile
+    }).then(() => {
+        remove(ref(db, `enrollment_requests/${key}`));
+        alert(`APPROVED!\nID: ${newID}\nPASS: ${newPass}`);
+    });
+};
     </script>
 </body>
 </html>
