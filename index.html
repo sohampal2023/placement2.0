@@ -68,6 +68,26 @@
                 </div>
             </div>
         </div>
+        <div id="study-hub-view" class="hidden fixed inset-0 bg-white z-[100] overflow-y-auto custom-scrollbar">
+    <nav class="sticky top-0 bg-white border-b p-6 flex justify-between items-center z-10">
+        <div class="flex items-center gap-3">
+            <button onclick="closeStudyHub()" class="p-2 hover:bg-slate-100 rounded-full transition-all">
+                <i data-lucide="arrow-left"></i>
+            </button>
+            <h2 id="hub-batch-title" class="text-xl font-black text-blue-600">Classroom</h2>
+        </div>
+        <div id="teacher-hub-tools" class="hidden">
+            <button onclick="toggleSubModal()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-sm">
+                + Add Subject
+            </button>
+        </div>
+    </nav>
+
+    <div class="max-w-5xl mx-auto p-8">
+        <div id="hub-curriculum-container" class="space-y-6">
+            </div>
+    </div>
+</div>
     </div>
 </div>
     <header class="pw-gradient text-white pt-24 pb-40 relative overflow-hidden">
@@ -356,60 +376,95 @@ window.saveNewTopic = async () => {
     window.toggleTopicModal();
 };
 
-// --- 3. UPDATED LOAD CURRICULUM ---
-function loadCurriculum() {
-    const container = document.getElementById('curriculum-container');
-    const isTeacher = auth.currentUser && auth.currentUser.email === ADMIN_EMAIL;
+let currentBatchId = null;
 
-    onValue(ref(db, `curriculum/${batchId}/subjects`), (snapshot) => {
-        const subjects = snapshot.val();
-        if (!subjects) {
-            container.innerHTML = `<div class="text-center py-20 text-slate-400 font-medium">No subjects added yet.</div>`;
-            return;
+    // --- 1. NAVIGATION LOGIC (The "Single-Page" Switch) ---
+    window.openStudyHub = (batchId, batchName) => {
+        currentBatchId = batchId;
+        document.getElementById('hub-batch-title').innerText = batchName;
+        
+        // Check permissions (Teacher or Approved Student)
+        const user = auth.currentUser;
+        if (user.email !== ADMIN_EMAIL) {
+            onValue(ref(db, `authorized_students/${batchId}/${user.uid}`), (snap) => {
+                if (!snap.exists()) {
+                    alert("Access Denied! Wait for Teacher Approval.");
+                    return;
+                }
+                showHubUI();
+            });
+        } else {
+            showHubUI();
         }
+    };
 
-        let html = '';
-        Object.keys(subjects).forEach(subId => {
-            const sub = subjects[subId];
-            const topics = sub.topics ? Object.values(sub.topics) : [];
+    function showHubUI() {
+        document.getElementById('study-hub-view').classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Stop background scrolling
+        loadCurriculum();
+    }
 
-            html += `
+    window.closeStudyHub = () => {
+        document.getElementById('study-hub-view').classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    };
+
+    // --- 2. TEACHER HUB ACTIONS ---
+    window.saveSubject = async () => {
+        const name = prompt("Enter Subject Name (e.g. Network Theory):");
+        if (!name || !currentBatchId) return;
+        
+        const subRef = push(ref(db, `curriculum/${currentBatchId}/subjects`));
+        await set(subRef, { id: subRef.key, title: name });
+    };
+
+    window.addTopic = async (subId) => {
+        const title = prompt("Topic Title:");
+        const video = prompt("YouTube Video ID:");
+        if (!title) return;
+
+        const topicRef = push(ref(db, `curriculum/${currentBatchId}/subjects/${subId}/topics`));
+        await set(topicRef, { id: topicRef.key, title, video });
+    };
+
+    // --- 3. UPDATED DATA LOADER ---
+    function loadCurriculum() {
+        const container = document.getElementById('hub-curriculum-container');
+        const isTeacher = auth.currentUser && auth.currentUser.email === ADMIN_EMAIL;
+        
+        if (isTeacher) document.getElementById('teacher-hub-tools').classList.remove('hidden');
+
+        onValue(ref(db, `curriculum/${currentBatchId}/subjects`), (snapshot) => {
+            const subjects = snapshot.val();
+            if (!subjects) {
+                container.innerHTML = `<p class="text-center py-20 opacity-50">No subjects yet.</p>`;
+                return;
+            }
+
+            container.innerHTML = Object.values(subjects).map(sub => {
+                const topics = sub.topics ? Object.values(sub.topics) : [];
+                return `
                 <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6">
-                    <div class="p-6 flex justify-between items-center bg-slate-50/50">
-                        <div class="flex items-center gap-4">
-                            <div class="bg-blue-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100">
-                                <i data-lucide="book"></i>
-                            </div>
-                            <h4 class="text-xl font-black text-slate-800">${sub.title}</h4>
-                        </div>
-                        ${isTeacher ? 
-                            `<button onclick="toggleTopicModal('${subId}')" class="text-blue-600 bg-white border border-blue-100 px-4 py-2 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all uppercase tracking-tighter">
-                                + Add Topic
-                            </button>` : ''
-                        }
+                    <div class="p-6 bg-slate-50 flex justify-between items-center">
+                        <h4 class="font-black text-slate-800">${sub.title}</h4>
+                        ${isTeacher ? `<button onclick="addTopic('${sub.id}')" class="text-xs font-bold text-blue-600">+ TOPIC</button>` : ''}
                     </div>
-
                     <div class="p-4 space-y-2">
-                        ${topics.length > 0 ? topics.map(t => `
-                            <div class="flex justify-between items-center p-4 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-100">
-                                <div class="flex items-center gap-4">
-                                    <i data-lucide="play-circle" class="text-slate-400 w-5 h-5"></i>
+                        ${topics.map(t => `
+                            <div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-transparent hover:border-blue-100 transition-all">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="play-circle" class="w-5 h-5 text-blue-600"></i>
                                     <span class="font-bold text-slate-700">${t.title}</span>
                                 </div>
-                                <div class="flex gap-2">
-                                    ${t.video ? `<button onclick="playVideo('${t.video}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><i data-lucide="video"></i></button>` : ''}
-                                    ${t.pdf ? `<a href="${t.pdf}" target="_blank" class="p-2 text-orange-600 hover:bg-orange-50 rounded-lg"><i data-lucide="file-text"></i></a>` : ''}
-                                </div>
+                                ${t.video ? `<button class="text-blue-600"><i data-lucide="video"></i></button>` : ''}
                             </div>
-                        `).join('') : `<p class="text-center py-4 text-xs text-slate-400">No topics uploaded in this subject.</p>`}
+                        `).join('')}
                     </div>
-                </div>
-            `;
+                </div>`;
+            }).join('');
+            lucide.createIcons();
         });
-        container.innerHTML = html;
-        lucide.createIcons();
-    });
-}
+    }
     loadBatches();
     lucide.createIcons();
 </script>
