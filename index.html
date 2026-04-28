@@ -319,11 +319,11 @@ function loadEnrollmentRequests() {
             // Fix: We only use a string for the button, no Modals here!
             const actionButton = isTeacher ? 
                 // Replace the buttons inside your container.innerHTML mapping:
-${isAdmin ? 
-    `<button onclick="openStudyHub('${b.id}', '${b.name}')" class="bg-blue-600 text-white px-10 py-5 rounded-3xl font-black shadow-xl hover:bg-blue-700 transition-all">Start Teaching</button>` 
-    : 
-    `<button onclick="openStudyHub('${b.id}', '${b.name}')" class="bg-slate-900 text-white px-10 py-5 rounded-3xl font-black shadow-xl hover:bg-blue-700 transition-all">Join Batch</button>`
-}
+            ${isAdmin ? 
+                `<button onclick="openStudyHub('${b.id}', '${b.name}')" class="bg-blue-600 text-white px-10 py-5 rounded-3xl font-black shadow-xl hover:bg-blue-700 transition-all">Start Teaching</button>` 
+                : 
+                    `<button onclick="openStudyHub('${b.id}', '${b.name}')" class="bg-slate-900 text-white px-10 py-5 rounded-3xl font-black shadow-xl hover:bg-blue-700 transition-all">Join Batch</button>`
+                }
 
             return `
             <div class="glass-card p-8 rounded-[3rem] flex flex-col h-full bg-white">
