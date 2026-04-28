@@ -432,27 +432,35 @@ window.toggleTopicModal = (subId = null) => {
 };
 
 // --- 2. SAVE TOPIC (VIDEO/PDF) ---
-window.saveNewTopic = async () => {
-    const title = document.getElementById('topic-title').value;
-    const video = document.getElementById('topic-video').value;
-    const pdf = document.getElementById('topic-pdf').value;
+window.saveNewTopic = async (title, pdfLink) => {
+    try {
+        const topicRef = push(ref(db, `curriculum/${currentBatchId}/subjects/${activeSubjectId}/topics`));
+        await set(topicRef, {
+            id: topicRef.key,
+            title: title,
+            pdf: pdfLink,
+            timestamp: Date.now()
+        });
+        alert("Note Uploaded!");
+    } catch (e) {
+        alert("Upload Failed. Check Admin Permissions.");
+    }
+};
+    window.deleteTopic = async (subId, topicId) => {
+    if (confirm("Delete this note permanently?")) {
+        await set(ref(db, `curriculum/${currentBatchId}/subjects/${subId}/topics/${topicId}`), null);
+    }
+};
 
-    if (!title || !activeSubjectId) return alert("Title is required!");
-
-    const topicRef = push(ref(db, `curriculum/${batchId}/subjects/${activeSubjectId}/topics`));
-    await set(topicRef, {
-        id: topicRef.key,
-        title,
-        video,
-        pdf,
-        timestamp: Date.now()
+// --- TEACHER: Edit Topic ---
+window.editTopic = async (subId, topicId, oldTitle) => {
+    const newTitle = prompt("Update Note Title:", oldTitle);
+    if (!newTitle) return;
+    
+    const { update } = await import("https://www.gstatic.com/firebasejs/12.12.1/firebase-database.js");
+    await update(ref(db, `curriculum/${currentBatchId}/subjects/${subId}/topics/${topicId}`), {
+        title: newTitle
     });
-
-    // Reset and Close
-    document.getElementById('topic-title').value = '';
-    document.getElementById('topic-video').value = '';
-    document.getElementById('topic-pdf').value = '';
-    window.toggleTopicModal();
 };
 
 let currentBatchId = null;
@@ -530,16 +538,14 @@ window.saveSubject = async () => {
     }
 };
 
-window.addTopic = async (subId) => {
-    const title = prompt("Topic/Lecture Title:");
-    const video = prompt("YouTube Video ID (Example: dQw4w9WgXcQ):");
+window.addTopic = (subId) => {
+    activeSubjectId = subId; 
+    const title = prompt("Note Title (e.g., Chapter 1 Notes):");
     if (!title) return;
 
-    try {
-        const tRef = push(ref(db, `curriculum/${currentBatchId}/subjects/${subId}/topics`));
-        await set(tRef, { id: tRef.key, title, video, timestamp: Date.now() });
-    } catch (e) {
-        alert("Action failed. Check admin permissions.");
+    const pdfLink = prompt("Paste Google Drive Link:");
+    if (pdfLink) {
+        window.saveNewTopic(title, pdfLink);
     }
 };
     
