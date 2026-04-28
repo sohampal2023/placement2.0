@@ -162,29 +162,29 @@
     </nav>
     <div class="max-w-7xl mx-auto p-10" id="hub-curriculum-container"></div>
 </div>
-    <div id="paymentModal" class="hidden fixed inset-0 bg-slate-900/90 z-[1000000] flex items-center justify-center p-4 backdrop-blur-sm">
-    <div class="bg-white rounded-[3rem] p-8 max-w-sm w-full text-center relative shadow-2xl animate-in zoom-in duration-300">
+    <div id="paymentModal" class="hidden fixed inset-0 bg-slate-900/95 z-[1000000] flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-[3rem] p-8 max-w-sm w-full text-center relative shadow-2xl">
         <button onclick="document.getElementById('paymentModal').classList.add('hidden')" class="absolute top-6 right-6 text-slate-300 hover:text-slate-900">
             <i data-lucide="x"></i>
         </button>
         
-        <h3 class="text-xl font-black mb-1 uppercase tracking-tighter text-slate-900">Scan to Enroll</h3>
-        <p class="text-slate-500 text-[10px] mb-8 font-bold uppercase tracking-widest">Pay using any UPI App</p>
+        <h3 class="text-xl font-black mb-1 uppercase tracking-tighter text-slate-900">Payment Required</h3>
+        <p class="text-slate-500 text-[10px] mb-6 font-bold uppercase tracking-widest">Scan QR & Enter 12-Digit UTR</p>
         
-        <div class="bg-slate-50 aspect-square rounded-[2.5rem] mb-8 flex items-center justify-center overflow-hidden border-2 border-slate-100 p-4">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=sohampal781@okhdfcbank%26pn=GovtPrep%20Pro" 
-                 alt="UPI QR" class="w-full h-full object-contain mix-blend-multiply">
+        <div class="bg-slate-50 aspect-square rounded-[2.5rem] mb-6 flex items-center justify-center border-2 border-slate-100 p-4">
+            <img id="dynamic-qr" src="" alt="UPI QR" class="w-full h-full object-contain mix-blend-multiply">
         </div>
 
         <div class="space-y-4">
-            <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                <span class="block text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">Verify UPI ID</span>
-                <span class="text-sm font-black text-blue-700 tracking-tight">sohampal781@okhdfcbank</span>
+            <div class="relative">
+                <input id="student-utr" type="number" placeholder="Enter 12-Digit UTR Number" 
+                       class="w-full p-4 rounded-2xl bg-slate-50 border-2 border-blue-100 focus:border-blue-600 outline-none font-bold text-center text-sm tracking-widest">
+                <p class="text-[9px] text-slate-400 mt-2 font-bold uppercase">Check your payment history for UTR/Ref No.</p>
             </div>
             
-            <button onclick="document.getElementById('paymentModal').classList.add('hidden'); alert('Request Sent! I will approve your access once I verify the payment in my bank statement.')" 
+            <button onclick="submitUtrRequest()" 
                     class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all">
-                I have paid, Notify Teacher
+                Submit for Approval
             </button>
         </div>
     </div>
@@ -294,40 +294,31 @@ window.approveStudent = async (batchId, studentUid) => {
     };
 
     // --- 4. DATA LOADERS ---
-    // --- Block 3: Enrollment Request Monitor ---
 function loadEnrollmentRequests() {
     onValue(ref(db, 'enrollment_requests'), (snapshot) => {
         const container = document.getElementById('pending-requests');
         const data = snapshot.val();
+        if (!data) { container.innerHTML = `<p class="text-xs font-bold text-center opacity-30">No Requests</p>`; return; }
         
-        if (!data) {
-            container.innerHTML = `
-                <div class="flex flex-col items-center py-6 opacity-30">
-                    <i data-lucide="check-circle-2" class="w-8 h-8 mb-2"></i>
-                    <p class="text-xs font-bold uppercase">All Students Approved</p>
-                </div>`;
-            return;
-        }
-
         let html = '';
         Object.keys(data).forEach(batchId => {
             const batchRequests = data[batchId];
             Object.keys(batchRequests).forEach(uid => {
                 const req = batchRequests[uid];
                 html += `
-                    <div class="flex justify-between items-center bg-slate-900/50 p-5 rounded-2xl border border-slate-700 hover:border-blue-500 transition-all group">
-                        <div class="text-left">
-                            <p class="font-bold text-white text-sm">${req.email}</p>
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="bg-blue-600/20 text-blue-400 text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">
-                                    ${req.batchName}
-                                </span>
-                            </div>
+                <div class="bg-slate-900 p-5 rounded-3xl border border-slate-700 mb-3 flex justify-between items-center group">
+                    <div class="text-left">
+                        <p class="font-black text-white text-[11px] uppercase tracking-tight">${req.email}</p>
+                        <p class="text-blue-400 text-[10px] font-black uppercase mt-1">${req.batchName} • ₹${req.amountPaid}</p>
+                        <div class="mt-2 bg-blue-600/20 px-3 py-1 rounded-lg border border-blue-500/30">
+                            <span class="text-blue-300 font-mono text-xs font-bold tracking-widest">UTR: ${req.utr}</span>
                         </div>
-                        <button onclick="approveStudent('${batchId}', '${uid}')" class="bg-green-600 text-white p-3 rounded-xl shadow-lg shadow-green-900/20 hover:bg-green-500 hover:scale-110 active:scale-95 transition-all">
-                            <i data-lucide="user-plus" class="w-5 h-5"></i>
-                        </button>
-                    </div>`;
+                    </div>
+                    <button onclick="approveStudent('${batchId}', '${uid}')" 
+                            class="bg-green-600 text-white p-4 rounded-2xl shadow-lg hover:bg-green-500 transition-all">
+                        <i data-lucide="user-plus"></i>
+                    </button>
+                </div>`;
             });
         });
         container.innerHTML = html;
@@ -779,33 +770,50 @@ window.closeStudyHub = () => {
         lucide.createIcons();
     });
 };
-    window.requestEnrollment = async (batchId, batchName, price) => {
+   let pendingBatchData = null; // Temporary storage
+
+window.requestEnrollment = async (batchId, batchName, price) => {
     const user = auth.currentUser;
     const myUpiId = "sohampal781@okhdfcbank"; 
-    const merchantName = "GovtPrep Pro";
     
-    // Fallback if price is somehow missing
-    const finalPrice = price || "0";
-    
-    // Standard UPI Link
-    const upiLink = `upi://pay?pa=${myUpiId}&pn=${encodeURIComponent(merchantName)}&am=${finalPrice}&cu=INR&tn=${encodeURIComponent('Join ' + batchName)}`;
+    // Store data to use after UTR is typed
+    pendingBatchData = { batchId, batchName, price, user };
 
+    // Update QR Code image dynamically
+    const qrImg = document.getElementById('dynamic-qr');
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=${myUpiId}%26pn=GovtPrep%20Pro%26am=${price}%26tn=Batch_${batchName}`;
+
+    // Check if Mobile (to launch app) or Desktop (to show QR)
     const isMobile = /iPhone|Android/i.test(navigator.userAgent);
+    if (isMobile && confirm(`Pay ₹${price} for ${batchName}? Click OK to open UPI apps.`)) {
+        window.location.href = `upi://pay?pa=${myUpiId}&pn=GovtPrepPro&am=${price}&tn=Batch_${batchName}`;
+    }
+    
+    document.getElementById('paymentModal').classList.remove('hidden');
+};
 
-    if (isMobile) {
-        if (confirm(`Open UPI App to pay ₹${finalPrice}?`)) {
-            window.location.href = upiLink;
-            sendEnrollmentToFirebase(batchId, user, batchName, finalPrice);
-        }
-    } else {
-        // DESKTOP: Show Modal
-        const qrModal = document.getElementById('paymentModal');
-        if (qrModal) {
-            qrModal.classList.remove('hidden');
-            sendEnrollmentToFirebase(batchId, user, batchName, finalPrice);
-        } else {
-            alert("Critical Error: Payment UI missing. Please pay ₹" + finalPrice + " to " + myUpiId);
-        }
+window.submitUtrRequest = async () => {
+    const utr = document.getElementById('student-utr').value;
+    if (utr.length < 10) return alert("Please enter a valid 12-digit UTR/Transaction ID.");
+
+    const { batchId, batchName, price, user } = pendingBatchData;
+
+    try {
+        await set(ref(db, `enrollment_requests/${batchId}/${user.uid}`), {
+            uid: user.uid,
+            email: user.email,
+            batchName: batchName,
+            amountPaid: price,
+            utr: utr, // THE KEY DATA
+            status: "Awaiting Verification",
+            timestamp: Date.now()
+        });
+        
+        document.getElementById('paymentModal').classList.add('hidden');
+        document.getElementById('student-utr').value = ''; // Reset
+        alert("Request Submitted! I will verify UTR: " + utr + " and approve your access shortly.");
+    } catch (e) {
+        alert("Request failed. Please try again.");
     }
 };
 
