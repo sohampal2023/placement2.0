@@ -312,18 +312,16 @@ function loadEnrollmentRequests() {
             return;
         }
 
-        const isTeacher = auth.currentUser && auth.currentUser.email === ADMIN_EMAIL;
+        // Define Master Check
+        const user = auth.currentUser;
+        const isMaster = user && user.email === ADMIN_EMAIL;
         
         container.innerHTML = Object.keys(data).map(key => {
             const b = data[key];
-            // Fix: We only use a string for the button, no Modals here!
-            const actionButton = isTeacher ? 
-                // Replace the buttons inside your container.innerHTML mapping:
-            ${isAdmin ? 
-                `<button onclick="openStudyHub('${b.id}', '${b.name}')" class="bg-blue-600 text-white px-10 py-5 rounded-3xl font-black shadow-xl hover:bg-blue-700 transition-all">Start Teaching</button>` 
-                : 
-                    `<button onclick="openStudyHub('${b.id}', '${b.name}')" class="bg-slate-900 text-white px-10 py-5 rounded-3xl font-black shadow-xl hover:bg-blue-700 transition-all">Join Batch</button>`
-                }
+            
+            // Logic for the button text and color
+            const btnText = isMaster ? 'Start Teaching' : 'Join Batch';
+            const btnClass = isMaster ? 'bg-blue-600' : 'bg-slate-900';
 
             return `
             <div class="glass-card p-8 rounded-[3rem] flex flex-col h-full bg-white">
@@ -337,7 +335,10 @@ function loadEnrollmentRequests() {
                         <span class="text-[10px] font-black text-slate-400 block tracking-widest uppercase">Fee Plan</span>
                         <span class="text-3xl font-black text-blue-600">₹${b.price}</span>
                     </div>
-                    ${actionButton}
+                    <button onclick="openStudyHub('${b.id}', '${b.name}')" 
+                            class="${btnClass} text-white px-8 py-4 rounded-2xl font-black shadow-xl hover:opacity-90 transition-all">
+                        ${btnText}
+                    </button>
                 </div>
             </div>`;
         }).join('');
@@ -508,43 +509,50 @@ window.addTopic = async (subId) => {
 };
     
     // --- 3. UPDATED DATA LOADER ---
-    function loadCurriculum() {
-        const container = document.getElementById('hub-curriculum-container');
-        const isTeacher = auth.currentUser && auth.currentUser.email === ADMIN_EMAIL;
-        
-        if (isTeacher) document.getElementById('teacher-hub-tools').classList.remove('hidden');
-
-        onValue(ref(db, `curriculum/${currentBatchId}/subjects`), (snapshot) => {
-            const subjects = snapshot.val();
-            if (!subjects) {
-                container.innerHTML = `<p class="text-center py-20 opacity-50">No subjects yet.</p>`;
-                return;
-            }
-
-            container.innerHTML = Object.values(subjects).map(sub => {
-                const topics = sub.topics ? Object.values(sub.topics) : [];
-                return `
-                <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6">
-                    <div class="p-6 bg-slate-50 flex justify-between items-center">
-                        <h4 class="font-black text-slate-800">${sub.title}</h4>
-                        ${isTeacher ? `<button onclick="addTopic('${sub.id}')" class="text-xs font-bold text-blue-600">+ TOPIC</button>` : ''}
-                    </div>
-                    <div class="p-4 space-y-2">
-                        ${topics.map(t => `
-                            <div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-transparent hover:border-blue-100 transition-all">
-                                <div class="flex items-center gap-3">
-                                    <i data-lucide="play-circle" class="w-5 h-5 text-blue-600"></i>
-                                    <span class="font-bold text-slate-700">${t.title}</span>
-                                </div>
-                                ${t.video ? `<button class="text-blue-600"><i data-lucide="video"></i></button>` : ''}
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>`;
-            }).join('');
-            lucide.createIcons();
-        });
+   function loadCurriculum() {
+    const container = document.getElementById('hub-curriculum-container');
+    const teacherTools = document.getElementById('teacher-hub-tools');
+    const user = auth.currentUser;
+    const isMaster = user && user.email === ADMIN_EMAIL;
+    
+    // Show top Add Subject button only for Master
+    if (isMaster) {
+        teacherTools.classList.remove('hidden');
+    } else {
+        teacherTools.classList.add('hidden');
     }
+
+    onValue(ref(db, `curriculum/${currentBatchId}/subjects`), (snapshot) => {
+        const subjects = snapshot.val();
+        if (!subjects) {
+            container.innerHTML = `<p class="text-center py-20 opacity-50 font-bold">Classroom is empty. Start adding subjects!</p>`;
+            return;
+        }
+
+        container.innerHTML = Object.values(subjects).map(sub => {
+            const topics = sub.topics ? Object.values(sub.topics) : [];
+            return `
+            <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-6">
+                <div class="p-6 bg-slate-50 flex justify-between items-center">
+                    <h4 class="font-black text-slate-800">${sub.title}</h4>
+                    ${isMaster ? `<button onclick="addTopic('${sub.id}')" class="text-xs font-black text-blue-600 bg-white border border-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-all">+ TOPIC</button>` : ''}
+                </div>
+                <div class="p-4 space-y-2">
+                    ${topics.length > 0 ? topics.map(t => `
+                        <div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-transparent hover:border-blue-100 transition-all">
+                            <div class="flex items-center gap-3">
+                                <i data-lucide="play-circle" class="w-5 h-5 text-blue-600"></i>
+                                <span class="font-bold text-slate-700">${t.title}</span>
+                            </div>
+                            <button class="text-blue-600 hover:scale-110 transition-transform"><i data-lucide="video"></i></button>
+                        </div>
+                    `).join('') : '<p class="text-center py-4 text-xs text-slate-400 italic">No lectures in this module yet.</p>'}
+                </div>
+            </div>`;
+        }).join('');
+        lucide.createIcons();
+    });
+}
     loadBatches();
     lucide.createIcons();
 </script>
