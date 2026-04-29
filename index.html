@@ -81,22 +81,31 @@
 </div>
             </div>
 
-            <div class="bg-slate-800/50 p-6 rounded-[2rem] border border-slate-700">
-                <h3 class="font-bold mb-4 flex items-center gap-2"><i data-lucide="user-check" class="w-4 h-4 text-green-400"></i> Enrollment Requests</h3>
-                <div id="pending-requests" class="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar">
-                    <p class="text-slate-500 text-sm italic">No pending requests.</p>
-                </div>
-            </div>
+            <!-- TEACHER SCHEDULING CARD -->
+<div class="bg-slate-800/80 p-6 rounded-[2.5rem] border border-slate-700 shadow-2xl mt-6">
+    <div class="flex items-center gap-3 mb-4">
+        <div class="p-2 bg-blue-500/20 rounded-lg text-blue-400">
+            <i data-lucide="calendar-clock"></i>
         </div>
+        <h3 class="font-black text-xs uppercase tracking-widest text-slate-200">Schedule Live Session</h3>
     </div>
-        <div class="bg-slate-800/50 p-6 rounded-[2rem] border border-slate-700 mt-6">
-    <h3 class="font-bold mb-4 text-blue-400 uppercase text-xs tracking-widest">Schedule Live Class</h3>
-    <div class="grid grid-cols-2 gap-4">
-        <input id="sched-start" type="datetime-local" class="bg-slate-900 p-3 rounded-xl text-xs text-white outline-none">
-        <input id="sched-end" type="datetime-local" class="bg-slate-900 p-3 rounded-xl text-xs text-white outline-none">
+    
+    <div class="space-y-4">
+        <div>
+            <label class="text-[9px] font-black text-slate-500 uppercase mb-2 block">Start Time</label>
+            <input id="sched-start" type="datetime-local" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs text-white outline-none focus:border-blue-500">
+        </div>
+        <div>
+            <label class="text-[9px] font-black text-slate-500 uppercase mb-2 block">End Time</label>
+            <input id="sched-end" type="datetime-local" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs text-white outline-none focus:border-blue-500">
+        </div>
+        
+        <button onclick="saveClassSchedule()" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-white transition-all shadow-lg shadow-blue-900/20">
+            Confirm & Push to Students
+        </button>
     </div>
-    <button onclick="setClassSchedule()" class="w-full mt-4 bg-blue-600 py-3 rounded-xl font-black text-xs uppercase">Set Live Timing</button>
 </div>
+        
 </div>
     <header class="pw-gradient text-white pt-24 pb-40 relative overflow-hidden">
         <div class="max-w-7xl mx-auto px-4 relative z-10 text-center">
@@ -1372,12 +1381,6 @@ const initSidebarDrag = () => {
 };
 
 // Call this inside your openLiveClass function
-window.openLiveClass = () => {
-    document.getElementById('live-classroom-view').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-    if (!fabricCanvas) initWhiteboard();
-    initDraggable(); // Trigger the drag logic here
-};
 document.onmouseup = () => { isDragging = false; };
     function updateClassStatus(batchId, subjectId) {
     onValue(ref(db, `schedules/${batchId}/${subjectId}`), (snap) => {
@@ -1467,19 +1470,56 @@ window.addShape = (type) => {
     fabricCanvas.add(shape);
     fabricCanvas.setActiveObject(shape);
 };
-    let isDragging = false;
+    // --- 1. GLOBAL VARIABLES (Top of your module script) ---
+let isDragging = false;
 let currentTarget = null;
+let offset = [0, 0];
 
+// --- 2. THE DRAGGABLE LOGIC ---
+// This listens to the whole document, so it never misses a "mouseup"
 document.addEventListener('mousedown', (e) => {
     const el = e.target.closest('.cursor-move');
+    // Only drag if clicking the bar itself, not a button inside it
     if (el && !e.target.closest('button')) {
         isDragging = true;
         currentTarget = el;
-        el.style.zIndex = 5000000; // Bring to front
-        el.dataset.offsetX = el.offsetLeft - e.clientX;
-        el.dataset.offsetY = el.offsetTop - e.clientY;
+        offset = [
+            el.offsetLeft - e.clientX,
+            el.offsetTop - e.clientY
+        ];
+        el.style.zIndex = "5000000"; 
     }
 });
+
+document.addEventListener('mousemove', (e) => {
+    if (!isDragging || !currentTarget) return;
+    
+    currentTarget.style.left = (e.clientX + offset[0]) + 'px';
+    currentTarget.style.top = (e.clientY + offset[1]) + 'px';
+    currentTarget.style.right = 'auto';
+    currentTarget.style.bottom = 'auto';
+});
+
+document.addEventListener('mouseup', () => {
+    isDragging = false;
+    currentTarget = null;
+});
+
+// --- 3. FIXING THE openLiveClass ERROR ---
+window.openLiveClass = () => {
+    const liveView = document.getElementById('live-classroom-view');
+    if (liveView) {
+        liveView.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        
+        // Initialize whiteboard if not already done
+        if (typeof initWhiteboard === "function") {
+            initWhiteboard();
+        }
+        
+        console.log("Live Classroom Opened Successfully");
+    }
+};
 window.revealAnswer = async () => {
     const correct = prompt("Set Correct Answer (A, B, C, or D):");
     if (!correct) return;
@@ -1504,6 +1544,52 @@ document.addEventListener('mouseup', () => {
     isDragging = false;
     currentTarget = null;
 });
+    window.saveClassSchedule = async () => {
+    const start = document.getElementById('sched-start').value;
+    const end = document.getElementById('sched-end').value;
+
+    // Check if you actually have a batch selected
+    if (!currentBatchId) {
+        alert("⚠️ Please open a batch classroom first so the system knows where to schedule the class!");
+        return;
+    }
+
+    if (!start || !end) {
+        alert("⚠️ Please select both Start and End times.");
+        return;
+    }
+
+    try {
+        // Save to a specific "schedules" node in Firebase
+        await set(ref(db, `schedules/${currentBatchId}`), {
+            startTime: new Date(start).getTime(),
+            endTime: new Date(end).getTime(),
+            status: "scheduled",
+            batchName: document.getElementById('hub-batch-title')?.innerText || "Class"
+        });
+        
+        alert("✅ Schedule Published! The 'LIVE' badge will appear automatically at the set time.");
+    } catch (e) {
+        console.error("Schedule error:", e);
+        alert("Failed to save schedule. Check console for errors.");
+    }
+};
+    function monitorLiveStatus(batchId) {
+    onValue(ref(db, `schedules/${batchId}`), (snap) => {
+        const data = snap.val();
+        if (!data) return;
+
+        const now = Date.now();
+        const liveLabel = document.getElementById(`live-indicator-${batchId}`);
+        
+        if (now >= data.startTime && now <= data.endTime) {
+            // SHOW LIVE BADGE
+            liveLabel.innerHTML = `<span class="bg-red-600 text-white text-[9px] font-black px-3 py-1 rounded-full animate-pulse">LIVE NOW</span>`;
+        } else {
+            liveLabel.innerHTML = ""; // Hide if not time
+        }
+    });
+}
     // --- INITIALIZE PORTAL ---
     loadBatches();
     lucide.createIcons();
