@@ -1071,23 +1071,96 @@ window.triggerFinalPoll = async (seconds) => {
     document.getElementById('poll-window').classList.add('hidden');
     alert(`Poll of ${seconds}s started!`);
 };
-    onValue(ref(db, `live_classes/${currentBatchId}/activePoll`), (snap) => {
+    let pollCountdown;
+
+// --- LISTEN FOR POLL TRIGGER ---
+onValue(ref(db, `live_classes/${currentBatchId}/activePoll`), (snap) => {
     const data = snap.val();
-    if (data && data.status === 'live') {
-        const studentModal = document.getElementById('student-poll-overlay');
-        studentModal.classList.remove('hidden');
+    const user = auth.currentUser;
+    
+    // Don't show the poll to the Teacher
+    if (data && data.status === 'live' && user.email !== ADMIN_EMAIL) {
+        const overlay = document.getElementById('student-poll-overlay');
+        const timerText = document.getElementById('poll-timer-display');
+        const buttons = document.querySelectorAll('.poll-opt-btn');
         
-        let remaining = data.duration;
-        const timerInt = setInterval(() => {
-            remaining--;
-            document.getElementById('poll-timer-display').innerText = remaining + "s";
-            if (remaining <= 0) {
-                clearInterval(timerInt);
-                studentModal.classList.add('hidden');
+        // Reset UI
+        overlay.classList.remove('hidden');
+        buttons.forEach(btn => {
+            btn.disabled = false;
+            btn.className = "poll-opt-btn bg-slate-50 hover:bg-blue-600 hover:text-white py-4 rounded-2xl font-black transition-all border border-slate-100";
+        });
+
+        // Start Countdown
+        let timeLeft = parseInt(data.duration);
+        clearInterval(pollCountdown);
+        
+        pollCountdown = setInterval(() => {
+            timeLeft--;
+            timerText.innerText = timeLeft + "s";
+            
+            if (timeLeft <= 0) {
+                clearInterval(pollCountdown);
+                overlay.classList.add('hidden');
             }
         }, 1000);
     }
 });
+
+// --- SUBMIT VOTE WITH TIME TRACKING ---
+window.submitStudentVote = async (choice) => {
+    const user = auth.currentUser;
+    const pollRef = ref(db, `live_classes/${currentBatchId}/activePoll`);
+    
+    // Get the poll start time to calculate speed
+    onValue(pollRef, async (snap) => {
+        const pollData = snap.val();
+        if (!pollData) return;
+
+        const responseTime = Date.now() - pollData.timestamp;
+        const isCorrect = choice === pollData.correct;
+
+        // Save result
+        await set(ref(db, `poll_results/${pollData.pollId}/${user.uid}`), {
+            name: user.displayName || user.email.split('@')[0],
+            choice: choice,
+            isCorrect: isCorrect,
+            time: responseTime / 1000 // Convert to seconds
+        });
+
+        // UI Feedback
+        const buttons = document.querySelectorAll('.poll-opt-btn');
+        buttons.forEach(btn => {
+            btn.disabled = true;
+            if(btn.innerText === choice) btn.classList.add('bg-blue-600', 'text-white');
+        });
+        document.getElementById('poll-status-msg').innerText = "VOTED! WAIT FOR RESULTS...";
+        
+    }, { onlyOnce: true });
+};
+    window.showLiveRankings = (pollId) => {
+    onValue(ref(db, `poll_results/${pollId}`), (snap) => {
+        const results = Object.values(snap.val() || {});
+        // Sort: Correct ones first, then by fastest time
+        const sorted = results
+            .filter(r => r.isCorrect)
+            .sort((a, b) => a.time - b.time);
+
+        const rankHtml = sorted.slice(0, 5).map((r, i) => `
+            <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl mb-2">
+                <span class="font-black text-xs">${i+1}. ${r.name}</span>
+                <span class="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-md font-bold">${r.time.toFixed(2)}s</span>
+            </div>
+        `).join('');
+
+        document.getElementById('live-chat').insertAdjacentHTML('afterbegin', `
+            <div class="p-4 border-2 border-yellow-400 rounded-3xl mb-4 bg-yellow-50">
+                <p class="text-[10px] font-black uppercase mb-2">🏆 Fastest Fingers First</p>
+                ${rankHtml || '<p class="text-xs opacity-50">No correct answers yet</p>'}
+            </div>
+        `);
+    });
+};
     // --- INITIALIZE PORTAL ---
     loadBatches();
     lucide.createIcons();
