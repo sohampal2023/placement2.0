@@ -1755,9 +1755,76 @@ window.adminAuditReport = async (isApproved) => {
     }
 };
 
-// --- 4. AUTO-INITIALIZE ---
-// Add this call to your existing openLiveClass or loadBatch function
-// 
+/**
+ * GOVTPREP.PRO - STUDENT FRONT-END ENGINE
+ * This function fetches batch data and renders the interactive UI cards.
+ */
+
+window.loadStudentBatches = () => {
+    const container = document.getElementById('batches-container');
+    const user = auth.currentUser;
+    if (!container) return; // Guard against null element
+
+    // 1. Get Authorization data (who has paid for what)
+    onValue(ref(db, 'authorized_students'), (authSnap) => {
+        const authData = authSnap.val() || {};
+        
+        // 2. Get Batch data
+        onValue(ref(db, 'premium_batches'), (batchSnap) => {
+            const batches = batchSnap.val();
+            if (!batches) {
+                container.innerHTML = `<div class="col-span-3 text-center py-20 opacity-30 font-black uppercase">No active batches available</div>`;
+                return;
+            }
+
+            container.innerHTML = Object.keys(batches).map(key => {
+                const b = batches[key];
+                const isApproved = authData[b.id] && authData[b.id][user?.uid];
+                const isMaster = user?.email === ADMIN_EMAIL;
+                const hasAccess = isMaster || isApproved;
+
+                const pMo = b.priceMonthly || 0;
+                const pFull = b.priceFull || 0;
+
+                return `
+                <div class="glass-card p-10 rounded-[3rem] flex flex-col h-full bg-white relative border border-transparent hover:border-blue-100 shadow-xl">
+                    
+                    <div class="bg-blue-50 text-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-inner">
+                        <i data-lucide="layers"></i>
+                    </div>
+                    
+                    <h3 class="text-2xl font-black text-slate-900 mb-2 text-center uppercase tracking-tighter">${b.name}</h3>
+                    <p class="text-slate-400 text-[10px] font-bold mb-6 text-center uppercase tracking-widest leading-relaxed px-4">${b.description || 'AE/JE Technical Coaching'}</p>
+                    
+                    <!-- DUAL PLAN SELECTOR -->
+                    <div class="bg-slate-50 p-2 rounded-2xl mb-8 flex gap-2">
+                        <button onclick="updateCardPrice('${b.id}', ${pMo}, '/mo')" class="flex-grow py-3 rounded-xl text-[10px] font-black uppercase bg-white shadow-sm text-blue-600 transition-all" id="btn-mo-${b.id}">Monthly Plan</button>
+                        <button onclick="updateCardPrice('${b.id}', ${pFull}, ' (Full)')" class="flex-grow py-3 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 transition-all" id="btn-full-${b.id}">Full Access</button>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-6 border-t border-slate-50">
+                        <div id="display-price-${b.id}">
+                            <span class="text-3xl font-black text-slate-900">₹${pMo}</span><small class="text-xs text-slate-400 font-bold ml-1">/mo</small>
+                        </div>
+                        
+                        <!-- MAIN INTERACTION BUTTON -->
+                        <button onclick="openStudyHub('${b.id}', '${b.name}', '${pFull}', '${pMo}')" 
+                                class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-blue-700 transition-all">
+                            ${hasAccess ? (isMaster ? 'Teach' : 'Study') : 'Join Now'}
+                        </button>
+                    </div>
+                    
+                    <!-- LIVE INDICATOR (Managed by monitorLiveStatus) -->
+                    <div id="live-indicator-${b.id}" class="absolute top-6 left-6"></div>
+                </div>`;
+            }).join('');
+            
+            // Re-initialize icons and start monitoring live status for each batch
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            Object.keys(batches).forEach(id => monitorLiveStatus(id));
+        });
+    });
+};
     // --- INITIALIZE PORTAL ---
     loadBatches();
     lucide.createIcons();
