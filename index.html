@@ -240,6 +240,32 @@
         <button onclick="document.getElementById('poll-window').classList.add('hidden')" class="w-full text-slate-400 font-bold text-[10px] uppercase">Cancel</button>
     </div>
 </div>
+    <!-- STUDENT SIDE: FLOATING POLL OVERLAY -->
+<div id="student-poll-overlay" class="hidden fixed bottom-6 right-6 w-72 bg-white/90 backdrop-blur-md rounded-[2.5rem] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] z-[4000000] border border-white animate-in slide-in-from-right duration-500">
+    <div class="flex justify-between items-center mb-4">
+        <div class="flex items-center gap-2">
+            <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
+            <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Poll</span>
+        </div>
+        <!-- TIMER DISPLAY -->
+        <div id="poll-timer-display" class="bg-slate-900 text-white px-3 py-1 rounded-full text-[10px] font-black font-mono">00s</div>
+    </div>
+
+    <h4 class="text-sm font-black text-slate-800 mb-4 leading-tight">Pick the correct option:</h4>
+    
+    <!-- OPTIONS GRID -->
+    <div class="grid grid-cols-2 gap-3">
+        <button onclick="submitStudentVote('A')" class="poll-opt-btn bg-slate-50 hover:bg-blue-600 hover:text-white py-4 rounded-2xl font-black transition-all border border-slate-100">A</button>
+        <button onclick="submitStudentVote('B')" class="poll-opt-btn bg-slate-50 hover:bg-blue-600 hover:text-white py-4 rounded-2xl font-black transition-all border border-slate-100">B</button>
+        <button onclick="submitStudentVote('C')" class="poll-opt-btn bg-slate-50 hover:bg-blue-600 hover:text-white py-4 rounded-2xl font-black transition-all border border-slate-100">C</button>
+        <button onclick="submitStudentVote('D')" class="poll-opt-btn bg-slate-50 hover:bg-blue-600 hover:text-white py-4 rounded-2xl font-black transition-all border border-slate-100">D</button>
+    </div>
+    
+    <p id="poll-status-msg" class="text-[9px] text-center mt-4 text-slate-400 font-bold uppercase tracking-tighter">Your answer will be ranked by speed!</p>
+</div>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
     import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-database.js";
