@@ -394,7 +394,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
     import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-database.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithEmailAndPassword, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBKqBYNRY_80b_UOLg1ls9pIKdX-Y8b3CM",
@@ -405,15 +405,6 @@
         messagingSenderId: "1061247846675",
         appId: "1:1061247846675:web:c6885811fcf1884582b2e6"
     };
-window.setupRecaptcha = () => {
-    if (!window.recaptchaVerifier) {
-        // 'invisible' means the user never sees or clicks a captcha
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'invisible'
-        });
-    }
-};
-
 window.handlePhoneAuth = async () => {
     const phoneInput = document.getElementById('phone-number');
     const otpSection = document.getElementById('otp-section');
