@@ -1067,22 +1067,21 @@ window.uploadDoubt = async (file) => {
     // 1. Initialize Whiteboard
     function initWhiteboard() {
     if (typeof fabric !== 'undefined') {
+        const isTeacher = auth.currentUser?.email === ADMIN_EMAIL;
+        
         fabricCanvas = new fabric.Canvas('whiteboard', {
-            isDrawingMode: true,
+            isDrawingMode: isTeacher, // ONLY TEACHER CAN DRAW
             width: window.innerWidth,
             height: window.innerHeight - 100 
         });
-        fabricCanvas.freeDrawingBrush.width = 3;
-        fabricCanvas.freeDrawingBrush.color = "#000000";
 
-        // BROADCAST LOGIC: Send drawing to students after every stroke
-        fabricCanvas.on('path:created', () => {
-            if (auth.currentUser?.email === ADMIN_EMAIL) {
+        if (isTeacher) {
+            // TEACHER: Broadcast pen strokes
+            fabricCanvas.on('path:created', () => {
                 const syncRef = ref(db, `live_sync/${currentBatchId}/canvas`);
                 set(syncRef, JSON.stringify(fabricCanvas.toJSON()));
-            }
-        });
-        console.log("Whiteboard Engine Ready");
+            });
+        }
     }
 }
     // TEACHER: Broadcast Voice
@@ -1597,18 +1596,31 @@ window.openLiveClass = () => {
         liveView.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
         
-        if (typeof initWhiteboard === "function") initWhiteboard();
+        // 1. SELECT TOOLS TO HIDE
+        const teacherSidebar = document.getElementById('nav-bar'); 
+        const drawingToolbar = document.querySelector('.absolute.left-6.top-1/2'); 
+        const adminHeader = document.querySelector('.flex.items-center.gap-3'); 
 
         if (!isTeacher) {
-            // Student Setup
-            window.syncStudentView(); // See the drawing
-            window.autoHearTeacher(); // Hear the sound
-            window.cleanClassroomUI(); // Hide teacher tools
+            // --- STUDENT VIEW (CLEAN) ---
+            if (teacherSidebar) teacherSidebar.style.display = 'none'; // Hides page nav/colors
+            if (drawingToolbar) drawingToolbar.style.display = 'none'; // Hides pen/eraser/poll
+            if (adminHeader) adminHeader.style.display = 'none'; // Hides Upload PDF
+            
+            // Start student-only background sync
+            window.syncStudentView(); 
+            window.autoHearTeacher(); 
+            console.log("Access: Student Mode (Tools Hidden)");
         } else {
-            // Teacher Setup
-            // You can manually start sound with a button or auto-start here:
-            // window.startTeacherSound(); 
+            // --- TEACHER VIEW (FULL TOOLS) ---
+            if (teacherSidebar) teacherSidebar.style.display = 'block';
+            if (drawingToolbar) drawingToolbar.style.display = 'flex';
+            if (adminHeader) adminHeader.style.display = 'flex';
+            
+            console.log("Access: Teacher Mode (Tools Enabled)");
         }
+
+        if (typeof initWhiteboard === "function") initWhiteboard();
     }
 };
 window.revealAnswer = async () => {
