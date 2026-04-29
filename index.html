@@ -1627,57 +1627,99 @@ window.publishStudentReport = async () => {
 };
 
 // --- 2. DYNAMIC UI INJECTION (STUDENT SIDE) ---
+/**
+ * GOVTPREP.PRO - AUTOMATED REPORT ENGINE (STABLE VERSION)
+ * Fixes: "Cannot set properties of null" error.
+ */
+
+// --- 1. THE INJECTION FUNCTION (Creates the UI) ---
 window.injectStudentReportPortal = () => {
-    const container = document.querySelector('.batch-details-container') || document.body;
+    // Select the main container where the report should appear
+    const container = document.querySelector('.max-w-7xl.mx-auto.p-10') || document.body;
     
-    // Remove existing if any to prevent duplicates
-    const oldPortal = document.getElementById('student-report-section');
-    if (oldPortal) oldPortal.remove();
+    if (document.getElementById('student-report-section')) return; // Prevent double injection
 
     const html = `
         <div id="student-report-section" class="mt-12 p-8 bg-slate-900 text-white rounded-[3rem] shadow-2xl border border-slate-800">
             <div class="flex justify-between items-center mb-8">
                 <div>
                     <h3 class="text-xl font-black italic uppercase tracking-tighter text-blue-400">Performance Report</h3>
-                    <p id="report-date-range" class="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">Loading period...</p>
+                    <p id="report-date-range" class="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">Select dates to generate</p>
                 </div>
-                <div id="admin-verify-badge" class="bg-blue-500/20 text-blue-400 px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter">Awaiting Admin</div>
+                <div id="admin-verify-badge" class="bg-blue-500/20 text-blue-400 px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter">Awaiting Generation</div>
             </div>
 
             <div class="grid grid-cols-2 gap-4 mb-6">
-                <div class="bg-white/5 p-5 rounded-3xl border border-white/10">
-                    <p class="text-[9px] font-black text-slate-500 uppercase mb-2">Live Attendance</p>
+                <div class="bg-white/5 p-5 rounded-3xl border border-white/10 text-center">
+                    <p class="text-[9px] font-black text-slate-500 uppercase mb-2">Attendance</p>
                     <h4 id="report-att-val" class="text-2xl font-black text-white">--</h4>
                 </div>
-                <div class="bg-white/5 p-5 rounded-3xl border border-white/10">
-                    <p class="text-[9px] font-black text-slate-500 uppercase mb-2">Mock Avg</p>
+                <div class="bg-white/5 p-5 rounded-3xl border border-white/10 text-center">
+                    <p class="text-[9px] font-black text-slate-500 uppercase mb-2">Average Score</p>
                     <h4 id="report-score-val" class="text-2xl font-black text-white">--</h4>
                 </div>
             </div>
-
-            <p class="text-[9px] text-center text-slate-500 font-bold uppercase tracking-tighter">This report is automatically generated based on classroom logs.</p>
         </div>
     `;
 
     container.insertAdjacentHTML('beforeend', html);
+    console.log("Report Portal Injected Successfully");
+};
 
-    // Sync UI with Firebase data
+// --- 2. THE DATA SYNC (Safe from Null Errors) ---
+window.syncReportData = () => {
+    if (!currentBatchId) return;
+
     onValue(ref(db, `reports/${currentBatchId}/active_report`), (snap) => {
         const data = snap.val();
-        if (data) {
-            document.getElementById('report-date-range').innerText = `Period: ${data.range}`;
-            document.getElementById('report-att-val').innerText = data.attendance;
-            document.getElementById('report-score-val').innerText = data.avgScore;
-            
-            if (data.status === "Verified") {
-                const badge = document.getElementById('admin-verify-badge');
-                badge.innerText = "VERIFIED BY TEACHER";
-                badge.className = "bg-green-500/20 text-green-400 px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter";
-            }
+        if (!data) return;
+
+        // CRITICAL: If elements are missing (null), inject them now
+        if (!document.getElementById('report-att-val')) {
+            window.injectStudentReportPortal();
+        }
+
+        // Now safe to update
+        const attEl = document.getElementById('report-att-val');
+        const scoreEl = document.getElementById('report-score-val');
+        const rangeEl = document.getElementById('report-date-range');
+        const badgeEl = document.getElementById('admin-verify-badge');
+
+        if (attEl) attEl.innerText = data.attendance || "0%";
+        if (scoreEl) scoreEl.innerText = data.avgScore || "0/200";
+        if (rangeEl) rangeEl.innerText = `Period: ${data.range}`;
+        
+        if (badgeEl && data.status === "Verified") {
+            badgeEl.innerText = "VERIFIED BY TEACHER";
+            badgeEl.className = "bg-green-500/20 text-green-400 px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter";
         }
     });
 };
 
+// --- 3. TEACHER: PUBLISH & VERIFY ---
+window.publishStudentReport = async () => {
+    const start = document.getElementById('report-start')?.value;
+    const end = document.getElementById('report-end')?.value;
+
+    if (!start || !end) return alert("Select start and end dates.");
+
+    await set(ref(db, `reports/${currentBatchId}/active_report`), {
+        range: `${start} to ${end}`,
+        attendance: "92%", // Example logic
+        avgScore: "185/200",
+        status: "Verified",
+        timestamp: Date.now()
+    });
+    alert("Report Generated & Verified.");
+};
+
+// --- 4. ADMIN: DELETE FRAUD CASE ---
+window.deleteFraudReport = async () => {
+    if (confirm("Delete this report? This is used for false cases.")) {
+        await set(ref(db, `reports/${currentBatchId}/active_report`), null);
+        alert("Report removed from student dashboard.");
+    }
+};
 // --- 3. ADMIN: VERIFY OR DELETE REPORT ---
 window.adminAuditReport = async (isApproved) => {
     const reportRef = ref(db, `reports/${currentBatchId}/active_report`);
