@@ -198,6 +198,24 @@
                     <img src="https://www.svgrepo.com/show/355037/google.svg" class="w-6" alt="G"> Google Account
                 </button>
             </div>
+            <!-- Inside your loginModal -->
+<div id="phone-login-section" class="space-y-4">
+    <div class="relative">
+        <i data-lucide="phone" class="absolute left-4 top-4 w-5 h-5 text-slate-400"></i>
+        <input id="phone-number" type="tel" placeholder="+91 00000 00000" class="w-full pl-12 pr-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-blue-600 outline-none transition-all">
+    </div>
+    
+    <!-- OTP Input (Hidden until SMS sent) -->
+    <div id="otp-section" class="hidden relative">
+        <i data-lucide="shield-check" class="absolute left-4 top-4 w-5 h-5 text-slate-400"></i>
+        <input id="otp-code" type="number" placeholder="Enter 6-digit OTP" class="w-full pl-12 pr-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-blue-600 outline-none transition-all">
+    </div>
+
+    <!-- Firebase ReCAPTCHA (Required) -->
+    <div id="recaptcha-container"></div>
+
+    <button id="phone-auth-btn" onclick="handlePhoneAuth()" class="w-full bg-blue-700 text-white py-4 rounded-2xl font-black text-lg shadow-xl hover:bg-blue-800 transition-all">Send OTP</button>
+</div>
         </div>
     </div>
     <div id="study-hub-view" class="hidden fixed inset-0 bg-slate-50 z-[999999] overflow-y-auto w-full h-full">
@@ -387,7 +405,53 @@
         messagingSenderId: "1061247846675",
         appId: "1:1061247846675:web:c6885811fcf1884582b2e6"
     };
+   import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
 
+// Initialize ReCAPTCHA
+window.setupRecaptcha = () => {
+    if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            'size': 'invisible',
+            'callback': (response) => { console.log("Captcha Solved"); }
+        });
+    }
+};
+
+window.handlePhoneAuth = async () => {
+    const phoneInput = document.getElementById('phone-number');
+    const otpSection = document.getElementById('otp-section');
+    const authBtn = document.getElementById('phone-auth-btn');
+
+    if (!window.confirmationResult) {
+        // STEP 1: Send OTP
+        const phoneNumber = phoneInput.value;
+        if (phoneNumber.length < 10) return alert("Enter valid number with country code (e.g. +91...)");
+
+        window.setupRecaptcha();
+        const appVerifier = window.recaptchaVerifier;
+
+        try {
+            window.confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+            otpSection.classList.remove('hidden');
+            phoneInput.disabled = true;
+            authBtn.innerText = "Verify OTP";
+            alert("OTP Sent!");
+        } catch (e) {
+            alert("Error sending SMS: " + e.message);
+            if (window.recaptchaVerifier) window.recaptchaVerifier.render().then(id => grecaptcha.reset(id));
+        }
+    } else {
+        // STEP 2: Verify OTP
+        const code = document.getElementById('otp-code').value;
+        try {
+            await window.confirmationResult.confirm(code);
+            window.toggleModal();
+            alert("Login Successful!");
+        } catch (e) {
+            alert("Invalid OTP code.");
+        }
+    }
+};
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const auth = getAuth(app);
