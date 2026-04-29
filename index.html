@@ -405,20 +405,11 @@
         messagingSenderId: "1061247846675",
         appId: "1:1061247846675:web:c6885811fcf1884582b2e6"
     };
-
-// Initialize ReCAPTCHA
 window.setupRecaptcha = () => {
-    // Only initialize if it doesn't exist
     if (!window.recaptchaVerifier) {
+        // 'invisible' means the user never sees or clicks a captcha
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'invisible', // 'invisible' makes it seamless for students
-            'callback': (response) => {
-                console.log("reCAPTCHA solved. OTP sending...");
-            },
-            'expired-callback': () => {
-                // If the captcha expires before they send OTP, reset it
-                grecaptcha.reset();
-            }
+            'size': 'invisible'
         });
     }
 };
@@ -428,39 +419,22 @@ window.handlePhoneAuth = async () => {
     const otpSection = document.getElementById('otp-section');
     const authBtn = document.getElementById('phone-auth-btn');
 
-    // 1. FORMATTING: Ensure E.164 format (+91...)
     let phoneNumber = phoneInput.value.trim();
-    if (!phoneNumber.startsWith('+')) {
-        phoneNumber = '+91' + phoneNumber; 
-    }
+    if (!phoneNumber.startsWith('+')) phoneNumber = '+91' + phoneNumber;
 
-    // 2. RECAPTCHA: Must be initialized before the call
     window.setupRecaptcha();
-    const appVerifier = window.recaptchaVerifier;
-
-    // 3. THE FIREBASE CALL
-    signInWithPhoneNumber(auth, phoneNumber, appVerifier)
+    
+    signInWithPhoneNumber(auth, phoneNumber, window.recaptchaVerifier)
         .then((confirmationResult) => {
-            // Success: SMS sent
             window.confirmationResult = confirmationResult;
-            
-            // UI Updates
             otpSection.classList.remove('hidden');
-            phoneInput.disabled = true;
             authBtn.innerText = "Verify OTP";
-            alert("OTP sent to " + phoneNumber);
+            console.log("OTP Sent Successfully");
         })
         .catch((error) => {
-            // Error: SMS not sent
-            console.error("SMS Error:", error.code, error.message);
-            alert("Failed to send SMS. Error: " + error.message);
-            
-            // Reset ReCAPTCHA so user can try again
-            if (window.recaptchaVerifier) {
-                window.recaptchaVerifier.render().then(widgetId => {
-                    grecaptcha.reset(widgetId);
-                });
-            }
+            console.error("SMS Error:", error);
+            alert("Failed: " + error.message);
+            if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
         });
 };
     window.verifyOtpCode = async () => {
