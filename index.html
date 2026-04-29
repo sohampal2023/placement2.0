@@ -2030,10 +2030,6 @@ window.showLivePollMonitor = (pollId, duration) => {
         }
     });
 };
-    // --- 1. GLOBAL STATE ---
-let currentPollId = null;
-const ADMIN_EMAIL = "admin@admin.com";
-
 // --- 2. BROADCAST ENGINE (Teacher Side) ---
 window.startBroadcasting = () => {
     if (auth.currentUser?.email !== ADMIN_EMAIL) return;
