@@ -52,6 +52,7 @@
     </nav>
     <div id="admin-panel" class="hidden bg-slate-900 text-white border-b-4 border-blue-600">
     <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Dashboard Header -->
         <div class="flex items-center gap-3 mb-6">
             <div class="bg-blue-600 p-2 rounded-lg">
                 <i data-lucide="shield-check" class="w-5 h-5"></i>
@@ -60,52 +61,82 @@
         </div>
         
         <div class="grid md:grid-cols-2 gap-8">
+            <!-- 1. CREATE BATCH CARD -->
             <div class="bg-slate-800/50 p-6 rounded-[2rem] border border-slate-700">
-                <h3 class="font-bold mb-4 flex items-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4 text-blue-400"></i> Create New Batch</h3>
+                <h3 class="font-bold mb-4 flex items-center gap-2">
+                    <i data-lucide="plus-circle" class="w-4 h-4 text-blue-400"></i> Create New Batch
+                </h3>
                 <div class="space-y-3">
-    <input id="new-batch-name" type="text" placeholder="Batch Name" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm outline-none">
-    <input id="new-batch-desc" type="text" placeholder="Description" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm outline-none">
-    
-    <div class="grid grid-cols-2 gap-3">
-        <div>
-            <label class="text-[10px] text-slate-500 font-bold uppercase ml-2">One-time Price</label>
-            <input id="price-full" type="number" placeholder="₹ Full Access" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm outline-none">
-        </div>
-        <div>
-            <label class="text-[10px] text-slate-500 font-bold uppercase ml-2">Monthly Price</label>
-            <input id="price-monthly" type="number" placeholder="₹ Per Month" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm outline-none">
-        </div>
-    </div>
-    
-    <button onclick="uiCreateBatch()" class="w-full bg-blue-600 py-3 rounded-xl font-bold hover:bg-blue-500 transition-all">Publish Batch</button>
-</div>
+                    <input id="new-batch-name" type="text" placeholder="Batch Name" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm outline-none">
+                    <input id="new-batch-desc" type="text" placeholder="Description" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm outline-none">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] text-slate-500 font-bold uppercase ml-2">One-time Price</label>
+                            <input id="price-full" type="number" placeholder="₹ Full Access" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 font-bold uppercase ml-2">Monthly Price</label>
+                            <input id="price-monthly" type="number" placeholder="₹ Per Month" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm outline-none">
+                        </div>
+                    </div>
+                    <button onclick="uiCreateBatch()" class="w-full bg-blue-600 py-3 rounded-xl font-bold hover:bg-blue-500 transition-all">Publish Batch</button>
+                </div>
             </div>
 
-            <!-- TEACHER SCHEDULING CARD -->
-<div class="bg-slate-800/80 p-6 rounded-[2.5rem] border border-slate-700 shadow-2xl mt-6">
-    <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-blue-500/20 rounded-lg text-blue-400">
-            <i data-lucide="calendar-clock"></i>
+            <!-- 2. SCHEDULING CARD -->
+            <div class="bg-slate-800/80 p-6 rounded-[2.5rem] border border-slate-700 shadow-2xl">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-2 bg-blue-500/20 rounded-lg text-blue-400">
+                        <i data-lucide="calendar-clock"></i>
+                    </div>
+                    <h3 class="font-black text-xs uppercase tracking-widest text-slate-200">Schedule Live Session</h3>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[9px] font-black text-slate-500 uppercase mb-2 block">Start Time</label>
+                        <input id="sched-start" type="datetime-local" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs text-white outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black text-slate-500 uppercase mb-2 block">End Time</label>
+                        <input id="sched-end" type="datetime-local" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs text-white outline-none focus:border-blue-500">
+                    </div>
+                    <button onclick="saveClassSchedule()" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-white transition-all shadow-lg shadow-blue-900/20">
+                        Confirm & Push to Students
+                    </button>
+                </div>
+            </div>
         </div>
-        <h3 class="font-black text-xs uppercase tracking-widest text-slate-200">Schedule Live Session</h3>
+
+        <!-- NEW SECTIONS ADDED BELOW TO FIX ERRORS -->
+        <div class="grid md:grid-cols-2 gap-8 mt-8">
+            <!-- 3. STUDENT ENROLLMENT APPROVALS (Crucial Fix) -->
+            <div class="bg-slate-800/50 p-6 rounded-[2rem] border border-slate-700">
+                <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+                    <i data-lucide="user-check" class="w-4 h-4 text-green-400"></i> Enrollment Requests
+                </h3>
+                <div id="pending-requests" class="space-y-3 custom-scrollbar max-h-60 overflow-y-auto">
+                    <!-- Requests injected here by loadEnrollmentRequests() -->
+                    <p class="text-[10px] text-slate-500 text-center py-10 uppercase font-black opacity-30 tracking-widest">No pending applications</p>
+                </div>
+            </div>
+
+            <!-- 4. PERFORMANCE REPORT GENERATOR -->
+            <div class="bg-slate-800/50 p-6 rounded-[2rem] border border-slate-700">
+                <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+                    <i data-lucide="file-bar-chart" class="w-4 h-4 text-orange-400"></i> Generate Batch Report
+                </h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input id="report-start" type="date" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs text-white">
+                        <input id="report-end" type="date" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs text-white">
+                    </div>
+                    <button onclick="publishStudentReport()" class="w-full bg-orange-600 hover:bg-orange-500 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest">
+                        Verify & Publish Report
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-    
-    <div class="space-y-4">
-        <div>
-            <label class="text-[9px] font-black text-slate-500 uppercase mb-2 block">Start Time</label>
-            <input id="sched-start" type="datetime-local" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs text-white outline-none focus:border-blue-500">
-        </div>
-        <div>
-            <label class="text-[9px] font-black text-slate-500 uppercase mb-2 block">End Time</label>
-            <input id="sched-end" type="datetime-local" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs text-white outline-none focus:border-blue-500">
-        </div>
-        
-        <button onclick="saveClassSchedule()" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-white transition-all shadow-lg shadow-blue-900/20">
-            Confirm & Push to Students
-        </button>
-    </div>
-</div>
-        
 </div>
     <header class="pw-gradient text-white pt-24 pb-40 relative overflow-hidden">
         <div class="max-w-7xl mx-auto px-4 relative z-10 text-center">
