@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GovtPrep Premium | AE & JE Portal</title>
-    
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.11.0.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
@@ -228,7 +228,8 @@
         </div>
     </div>
 
-    <div id="poll-window" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 bg-white rounded-[2.5rem] p-8 shadow-[0_0_100px_rgba(0,0,0,0.5)] z-[4000000]">
+    <!-- POLL POPUP WINDOW (KEEPING YOUR ORIGINAL) -->
+<div id="poll-window" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 bg-white rounded-[2.5rem] p-8 shadow-[0_0_100px_rgba(0,0,0,0.5)] z-[4000000]">
     <h3 class="text-xl font-black text-center mb-6 uppercase italic">Trigger Poll</h3>
     <p class="text-[10px] font-bold text-slate-400 uppercase text-center mb-4">Set Time Duration</p>
     
@@ -244,8 +245,26 @@
         <button onclick="triggerFinalPoll(240)" class="py-3 bg-slate-100 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all border border-slate-200">240s</button>
         <button onclick="triggerFinalPoll(300)" class="py-3 bg-slate-100 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all border border-slate-200">300s</button>
     </div>
-    
     <button onclick="document.getElementById('poll-window').classList.add('hidden')" class="w-full text-slate-400 font-bold text-[10px] uppercase">Cancel</button>
+</div>
+        <!-- DRAGGABLE NAVIGATION & MODE BAR -->
+<div id="nav-bar" class="fixed top-20 left-6 w-48 bg-slate-800/90 backdrop-blur-md rounded-3xl p-4 shadow-2xl z-[3500000] cursor-move border border-slate-700">
+    <div class="text-[9px] font-black text-blue-400 uppercase mb-3 text-center tracking-widest">Navigation</div>
+    
+    <!-- PAGE CHANGE (Doesn't Delete Data) -->
+    <div class="flex gap-2 mb-4">
+        <button onclick="changePdfPage(-1)" class="flex-grow bg-slate-700 py-2 rounded-xl text-white"><i data-lucide="chevron-left" class="mx-auto w-4 h-4"></i></button>
+        <button onclick="changePdfPage(1)" class="flex-grow bg-slate-700 py-2 rounded-xl text-white"><i data-lucide="chevron-right" class="mx-auto w-4 h-4"></i></button>
+    </div>
+
+    <!-- DRAW vs SCROLL MODE -->
+    <div class="flex flex-col gap-2">
+        <button id="btn-draw" onclick="setMode('draw')" class="w-full py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">Draw Mode</button>
+        <button id="btn-scroll" onclick="setMode('scroll')" class="w-full py-2 bg-slate-700 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest">Scroll Mode</button>
+    </div>
+    
+    <!-- FINISH CLASS BUTTON -->
+    <button onclick="finishClassAndDownload()" class="w-full mt-4 bg-red-600 py-2 rounded-xl text-[9px] font-black text-white uppercase">End Class</button>
 </div>
 </div>
     <!-- STUDENT SIDE: FLOATING POLL OVERLAY -->
@@ -1243,6 +1262,114 @@ window.submitStudentVote = async (choice) => {
         alert("Download successful, but database cleanup failed.");
     }
 };
+    window.setInteractionLevel = (mode) => {
+    const drawBtn = document.getElementById('mode-draw');
+    const scrollBtn = document.getElementById('mode-scroll');
+
+    if (mode === 'draw') {
+        fabricCanvas.isDrawingMode = true;
+        fabricCanvas.selection = false;
+        drawBtn.className = "flex-grow py-2 rounded-xl text-[9px] font-black uppercase bg-blue-600 text-white";
+        scrollBtn.className = "flex-grow py-2 rounded-xl text-[9px] font-black uppercase text-slate-400";
+    } else {
+        fabricCanvas.isDrawingMode = false;
+        fabricCanvas.selection = true; // Allows you to grab objects or background
+        scrollBtn.className = "flex-grow py-2 rounded-xl text-[9px] font-black uppercase bg-blue-600 text-white";
+        drawBtn.className = "flex-grow py-2 rounded-xl text-[9px] font-black uppercase text-slate-400";
+    }
+};
+
+// --- PDF PAGE NAVIGATION (Doesn't delete previous work) ---
+window.changePdfPage = (direction) => {
+    // 1. Save current ink for the current page
+    pages[currentPageIndex] = fabricCanvas.toJSON();
+
+    const newPage = currentPageIndex + direction + 1; // PDF is 1-indexed
+    if (newPage > 0 && newPage <= window.totalPdfPages) {
+        currentPageIndex += direction;
+        renderPdfPage(newPage);
+        
+        // 2. Load existing ink if we've been to this page before
+        if (pages[currentPageIndex]) {
+            fabricCanvas.loadFromJSON(pages[currentPageIndex], fabricCanvas.renderAll.bind(fabricCanvas));
+        }
+    }
+};
+    window.revealCorrectAnswer = async () => {
+    const ans = prompt("Enter the Correct Answer (A, B, C, or D) to show students:");
+    if (!ans) return;
+
+    // Send answer to Firebase to trigger rank list on all screens
+    await update(ref(db, `live_classes/${currentBatchId}/activePoll`), {
+        correctAnswer: ans,
+        status: 'finished'
+    });
+
+    // Run ranking logic on Teacher side
+    showLiveRankings(currentPollId);
+};
+    // Draggable Script
+const consoleEl = document.getElementById('teacher-console');
+let isDragging = false;
+consoleEl.onmousedown = (e) => {
+    isDragging = true;
+    let offset = [consoleEl.offsetLeft - e.clientX, consoleEl.offsetTop - e.clientY];
+    document.onmousemove = (ev) => {
+        if (!isDragging) return;
+        consoleEl.style.left = (ev.clientX + offset[0]) + 'px';
+        consoleEl.style.top = (ev.clientY + offset[1]) + 'px';
+    };
+};
+document.onmouseup = () => { isDragging = false; };
+    function updateClassStatus(batchId, subjectId) {
+    onValue(ref(db, `schedules/${batchId}/${subjectId}`), (snap) => {
+        const sched = snap.val();
+        if (!sched) return;
+
+        const now = Date.now();
+        const start = new Date(sched.startTime).getTime();
+        const end = new Date(sched.endTime).getTime();
+        const expiry = end + (24 * 60 * 60 * 1000); // 24 hours after class ends
+
+        const statusLabel = document.getElementById(`status-${subjectId}`);
+        const btn = document.getElementById(`btn-join-${subjectId}`);
+
+        if (now >= start && now <= end) {
+            statusLabel.innerHTML = `<span class="bg-red-600 text-white px-3 py-1 rounded-full animate-pulse">LIVE</span>`;
+            btn.innerText = "JOIN LIVE CLASS";
+        } else if (now > end && now <= expiry) {
+            statusLabel.innerHTML = `<span class="bg-slate-600 text-white px-3 py-1 rounded-full">RECORDED</span>`;
+            btn.innerText = "WATCH RECORDING";
+        } else {
+            statusLabel.innerHTML = `<span class="text-slate-400">Class Ended</span>`;
+            btn.classList.add('hidden'); // Hide after 24 hours
+        }
+    });
+}
+    const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+
+async function startVoice() {
+    await client.join("YOUR_APP_ID", currentBatchId, null);
+    const localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+        encoderConfig: "high_quality" // This ensures crystal clear voice for students
+    });
+    await client.publish([localAudioTrack]);
+    console.log("Voice streaming live!");
+}
+    async function autoCleanupRecordings() {
+    const now = Date.now();
+    const recordsRef = ref(db, `recordings/${currentBatchId}`);
+    onValue(recordsRef, (snap) => {
+        const data = snap.val();
+        if (!data) return;
+        Object.keys(data).forEach(key => {
+            if (now > data[key].expiryTime) {
+                set(ref(db, `recordings/${currentBatchId}/${key}`), null);
+                console.log("Old recording deleted automatically.");
+            }
+        });
+    });
+}
     // --- INITIALIZE PORTAL ---
     loadBatches();
     lucide.createIcons();
