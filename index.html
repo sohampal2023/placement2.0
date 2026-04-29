@@ -247,7 +247,7 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     const ADMIN_EMAIL = "admin@admin.com";
-
+    let currentBatchId = null; // Ensure this is at the top of your script
     // --- 1. GLOBAL UI & AUTH ---
     window.toggleModal = () => {
         const m = document.getElementById('loginModal');
@@ -554,9 +554,6 @@ window.editTopic = async (subId, topicId, oldTitle) => {
         title: newTitle
     });
 };
-
-let currentBatchId = null;
-
     // --- 1. NAVIGATION LOGIC (The "Single-Page" Switch) ---
    window.openStudyHub = (bId, bName, pFull, pMo) => {
     currentBatchId = bId;
